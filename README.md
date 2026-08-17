@@ -33,6 +33,9 @@ are included in this repository, and `data/` and `outputs/` are ignored by git; 
   `gridExtra` (2.3), `ragg` (1.5.0) and `scales` (1.4.0). Figures use the graphics device's default sans-serif family
   (Helvetica on macOS, Arial or DejaVu Sans elsewhere), so no additional fonts are needed; the R scripts that write text switch to a UTF-8 locale
   themselves, so they run correctly even from a shell that uses the C locale.
+* `renv.lock` records the exact versions of these packages and their dependencies (82 packages, R 4.5.2) as used for the
+  reported results. To reproduce that library, run `renv::restore(lockfile = "renv.lock")` in R before `run_all.sh`;
+  a current CRAN library with the versions listed above also reproduces the results.
 
 ## How to run
 
@@ -88,9 +91,21 @@ sql/        BigQuery extraction (two queries and the wrapper script)
 R/          analysis scripts 01–09, run in order by run_all.sh
 protocol/   the pre-specified analysis plan
 expected/   manifest of the reported results used by the verification step
+renv.lock   package versions used for the reported results
 data/       created by step 1–3 (ignored by git)
 outputs/    results, figures, tables and logs (ignored by git)
 ```
+
+## Sharing the code
+
+Share the repository only through git (`git push`) or a git export:
+
+```bash
+git archive --format=zip -o mac-serial-echo-mimic.zip HEAD
+```
+
+Both send exactly the tracked files. Do not zip the working folder itself: after a run it contains `data/` and
+`outputs/`, which hold patient-level derived data covered by the PhysioNet data use agreement.
 
 ## Citation and licence
 
