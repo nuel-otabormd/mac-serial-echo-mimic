@@ -109,5 +109,6 @@ Both send exactly the tracked files. Do not zip the working folder itself: after
 
 ## Citation and licence
 
-Code is released under the MIT licence (`LICENSE`). Please cite the accompanying article; a DOI for this repository is
-provided in `CITATION.cff` once archived.
+Code is released under the MIT licence (`LICENSE`). The repository lives at
+https://github.com/nuel-otabormd/mac-serial-echo-mimic. Please cite the accompanying article; the DOI of the archived
+release is recorded in `CITATION.cff` once minted.

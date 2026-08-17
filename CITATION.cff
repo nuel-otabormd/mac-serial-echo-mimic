@@ -5,16 +5,20 @@ type: software
 authors:
   - family-names: Otabor
     given-names: Emmanuel
+    orcid: "https://orcid.org/0009-0006-7902-6909"
+  - family-names: Stavola
+    given-names: Thomas
   - family-names: Hassan
     given-names: Abdulraheem
   - family-names: Okunlola
     given-names: Ayoyimika
   - family-names: Lam
     given-names: Justin
-  - family-names: Alomari
-    given-names: Laith
+  - family-names: Sharma
+    given-names: Dhruv
   - family-names: Hamilton
     given-names: Michael
 version: 1.0.0
 date-released: 2026-08-17
 license: MIT
+repository-code: "https://github.com/nuel-otabormd/mac-serial-echo-mimic"
