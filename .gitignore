@@ -1,6 +1,8 @@
 # Patient-level data and derived objects are never committed (PhysioNet data use agreement)
 data/
+data
 outputs/
+outputs
 *.rds
 *.RData
 *.csv
