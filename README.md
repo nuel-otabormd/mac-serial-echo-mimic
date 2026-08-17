@@ -29,7 +29,7 @@ are included in this repository, and `data/` and `outputs/` are ignored by git; 
 
 * Google Cloud SDK (`bq`; tested with BigQuery CLI 2.1.27), authenticated to an account with credentialed PhysioNet
   BigQuery access, and a Google Cloud project to bill the queries (about 8.5 GB scanned).
-* R 4.5 (tested with 4.5.2) with `survival` (3.8-3), `mice` (3.18.0), `cmprsk` (2.2-12), `msm` (1.8-2), `ggplot2` (4.0.0),
+* R 4.5 (tested with 4.5.2) with `survival` (3.8-3), `mice` (3.18.0), `cmprsk` (2.2-12), `msm` (1.8-2), `sandwich` (3.1-1), `ggplot2` (4.0.0),
   `gridExtra` (2.3), `ragg` (1.5.0) and `scales` (1.4.0). Figures use the graphics device's default sans-serif family
   (Helvetica on macOS, Arial or DejaVu Sans elsewhere), so no additional fonts are needed; the R scripts that write text switch to a UTF-8 locale
   themselves, so they run correctly even from a shell that uses the C locale.
@@ -45,19 +45,21 @@ bash run_all.sh
 ```
 
 `run_all.sh` runs the nine steps below in order and stops at the first error. Total wall time on a laptop is about
-one and a half hours, most of it in steps 4 and 5.
+two and a half hours, most of it in steps 4 (about 55 minutes) and 5 (about 70 minutes on five cores).
 
 | Step | Script | Produces |
 | --- | --- | --- |
-| 1 | `sql/extract.sh` (runs `sql/01_analysis_frame.sql`, `sql/02_episode_panel.sql`) | `data/frame.csv` (one row per patient), `data/panel.csv` (one row per episode) |
-| 2 | `R/01_prepare_frame.R` | `data/frame.rds` (derived variables: body mass index, CKD-EPI 2021 eGFR, categories, standardised markers) |
+| 1 | `sql/extract.sh` (runs `sql/01_analysis_frame.sql`, `sql/02_episode_panel.sql`) | `data/frame.csv` (one row per patient), `data/panel.csv` (one row per episode: defining-study date, first and last study, number of studies, inpatient flag, grade) |
+| 2 | `R/01_prepare_frame.R` | `data/frame.rds` (derived variables: body mass index, CKD-EPI 2021 eGFR, categories, standardised markers, age at the qualifying echocardiogram; source-population and index-episode diagnostics printed) |
 | 3 | `R/02_impute.R` | `data/mice.rds` (20 imputations of index covariates; seed 20260816) |
-| 4 | `R/03_models_main.R` | `outputs/results/results_part1.rds` (co-primary piecewise-exponential models, imputation bridge, onset-versus-progression interaction, stricter onset cohort, informative-observation and censoring sensitivities, total versus direct associations, Fine and Gray companions, laboratory-definition and care-setting sensitivities) |
-| 5 | `R/04_hmm.R` | `outputs/results/hmm.RData` (hidden Markov model; about 20 minutes) |
-| 6 | `R/05_reliability_intervention.R` | `outputs/results/results_part2.rds` (baseline table, transitions, fate of first reads, model-derived quantities, stenosis incidence, model-independent check, intervention cascade) |
-| 7 | `R/06_secondary_mi.R` | `outputs/results/secondary_mi.rds` (stenosis time-varying-exposure model, intervention logistic model and survival model, all with multiply imputed covariates) |
-| 8 | `R/07_figures.R`, `R/08_tables.R` | `outputs/figures/` (Figures 1–4 as PNG, TIFF and PDF at 600 dpi), `outputs/tables/` (Tables 1–4 and Supplementary Tables S1–S10 as CSV, with notes) |
-| 9 | `R/09_verify.R` | comparison of this run with `expected/expected_results.csv`, the values reported in the manuscript; exit status 1 if any check fails |
+| 4 | `R/03_models_main.R` | `outputs/results/results_part1.rds` (co-primary piecewise-exponential models on person-intervals split at the time bands with patient-clustered variances, complementary log-log and Cox companions, imputation bridge, onset-versus-progression interaction, stricter onset cohort, landmark at the second episode, complete-case models, rheumatic-report sensitivity, visit-process and censoring weights with diagnostics, total versus direct associations, Fine and Gray pooled across imputations, laboratory-definition and care-setting sensitivities) |
+| 5 | `R/04_hmm.R` | `outputs/results/hmm.RData` (hidden Markov model from five dispersed starting sets, run in parallel with `parallel::mclapply`; set `MAC_CORES` to limit the cores, and note that on Windows `mclapply` runs the starts sequentially; about 70 minutes on five cores, longer sequentially) |
+| 6 | `R/05_reliability_intervention.R` | `outputs/results/results_part2.rds` (baseline table, transitions, fate of first reads, model-derived quantities, stenosis incidence with the death-window sensitivity and cumulative incidence, landmarked model-independent check, dysfunction and intervention cascade, cumulative incidence of intervention, mortality at fixed horizons) |
+| 7 | `R/06_secondary_mi.R` | `outputs/results/secondary_mi.rds` (stenosis time-varying-exposure model with the death-window sensitivity, cause-specific intervention model and survival model, all with multiply imputed covariates) |
+| 8 | `R/07_figures.R`, `R/08_tables.R` | `outputs/figures/` (Figures 1–4 as PNG, TIFF and PDF at 600 dpi), `outputs/tables/` (Tables 1–4 and Supplementary Tables S1–S16 as CSV, with notes) |
+| 9 | `R/09_verify.R` | regression check of this run against `expected/expected_results.csv`, a snapshot of the values reported in the manuscript taken from the archived run; exit status 1 if any check fails. It confirms that the code reproduces the reported numbers; it is not evidence that the numbers are right |
+
+`R/00_common.R` holds the shared conventions (death window, time bands, interval splitter) and is sourced by the scripts.
 
 Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can run in parallel with them.
 
@@ -72,15 +74,21 @@ Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can 
 | Table 3, Figure 3 | `tables/table3_main_models.csv`, `figures/Figure3_forest.*` |
 | Figure 4, Table 4A | `figures/Figure4_calcific_stenosis_CIF.*`, `tables/table4a_stenosis_incidence.csv` and note |
 | Table 4B, 4C | `tables/table4b_cascade.csv` and notes, `tables/table4c_intervention_or.csv` and notes |
-| Supplementary Tables S1–S10 | `tables/tableS1_*` to `tables/tableS10*` |
+| Supplementary Tables S1–S16 | `tables/tableS1_*` to `tables/tableS16*` (S7c weight diagnostics, S11 complementary log-log, S12 complete case, S13 landmark and rheumatic sensitivities, S14 death window, S15 hidden Markov starts, S16 fixed-horizon intervention and mortality) |
 
 ## Reproducibility notes
 
-* Every step is deterministic. The SQL resolves ties explicitly (index study within an episode, ordering of same-day
-  episodes, most-recent and median laboratory values, first intervention, type of dysfunction), imputation and model
-  fitting are seeded, and the hidden Markov model is a BFGS fit from fixed starting values.
-* Patient identifiers in `data/` are hashes of the MIMIC-IV subject identifier and all times are day offsets from the
-  index episode; these files still fall under the data use agreement and must not be shared.
+* Every step is deterministic. One physical study defines each episode (highest grade, then earliest, then lowest
+  identifier) and supplies its grade and, at index, the baseline covariates; time zero is the last study of the index episode;
+  runs of studies whose calendar days overlap form one episode; the SQL resolves every other tie explicitly (most-recent and
+  median laboratory values, first intervention, type of dysfunction); imputation and model fitting are seeded, and the hidden
+  Markov model is a BFGS fit from five fixed starting sets (the fit with the lowest -2 log-likelihood among converged starts
+  with a positive-definite Hessian is kept; the table of starts is Supplementary Table S15).
+* Conventions: person-intervals are split at 0.5, 1, 2, 4 and 7 years; death within 30 days after the last echocardiogram is
+  a competing event and later death is censoring at the last echocardiogram (`GRACE_DAYS` in `R/00_common.R`; varied in
+  Supplementary Table S14); weights are truncated at 0.1 and 10.
+* Patient identifiers in `data/` are hashes of the MIMIC-IV subject identifier and all times are day offsets from time
+  zero (the last study of the index episode); these files still fall under the data use agreement and must not be shared.
 * Random-number streams differ across R versions only if the default generator changes; the versions above reproduce
   the reported values exactly. Small last-digit differences in the hidden Markov model can arise from a different BLAS.
 
@@ -88,9 +96,9 @@ Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can 
 
 ```
 sql/        BigQuery extraction (two queries and the wrapper script)
-R/          analysis scripts 01–09, run in order by run_all.sh
+R/          shared conventions (00_common.R) and analysis scripts 01–09, run in order by run_all.sh
 protocol/   the analysis plan as archived (v2.4) and DEVIATIONS.md, the dated note on how the final analysis differs from it
-expected/   manifest of the reported results used by the verification step
+expected/   snapshot of the reported results used by the regression check in step 9
 renv.lock   package versions used for the reported results
 data/       created by step 1–3 (ignored by git)
 outputs/    results, figures, tables and logs (ignored by git)

@@ -8,7 +8,10 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"; root="$(dirname "$here")"; mkdir -p "$root/data"
 run () {  # $1 = sql file, $2 = output csv
   echo "[extract] $(basename "$1") -> $(basename "$2")"
-  bq --project_id="$BQ_BILLING_PROJECT" query --use_legacy_sql=false --format=csv --max_rows=100000000 --quiet < "$1" > "$2"
+  # the queries are multi-statement scripts (temporary tables for the shared cohort chain, then the final SELECT); the bq CLI
+  # echoes each statement before the result even with --quiet, so only the CSV that starts at the header line is kept
+  bq --project_id="$BQ_BILLING_PROJECT" query --use_legacy_sql=false --format=csv --max_rows=100000000 --quiet < "$1" | awk 'f || /^pid,/ {f=1; print}' > "$2"
+  head -1 "$2" | grep -q '^pid,' || { echo "[extract]   ERROR: no result rows for $(basename "$1")"; exit 1; }
   echo "[extract]   rows: $(( $(wc -l < "$2") - 1 ))"
 }
 run "$here/01_analysis_frame.sql" "$root/data/frame.csv"

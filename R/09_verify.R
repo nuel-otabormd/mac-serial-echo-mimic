@@ -25,12 +25,15 @@ vals <- c(
   stenosis_rate_none=inc$rate100[1], stenosis_rate_mild=inc$rate100[2], stenosis_rate_modsev=inc$rate100[3], stenosis_atrisk_none=inc$n[1], stenosis_atrisk_mild=inc$n[2], stenosis_atrisk_modsev=inc$n[3],
   stenosis_tvc_hr_mi=sm$ms_tvc$hr[sm$ms_tvc$term=="mac"], internal_check_hr=unname(r2$internal_check["hr"]),
   interv_modplus=iv$n_modplus, interv_dysfunction=iv$n_pheno, interv_analysed=iv$n_analysed, interv_n=iv$n_interv, interv_died=iv$died, interv_median_days=iv$med_days,
-  interv_or_age_mi=sm$pooled$or_mi[sm$pooled$term=="age10p"], interv_surv_hr_mi=unname(sm$surv_hr["hr"]),
+  interv_hr_age_mi=sm$pooled$hr_mi[sm$pooled$term=="age10p"], interv_surv_hr_mi=unname(sm$surv_hr["hr"]), interv_cif_5y_pct=100*unname(r2$interv_cif$est[1,"5"]), interv_dysfunction_same_episode=iv$n_pheno_same_episode,
+  cloglog_age_onset_first=r1$cloglog$hr[r1$cloglog$stratum=="onset"&r1$cloglog$def=="first"&r1$cloglog$term=="age10"], landmark_age_onset_first=r1$landmark$hr[r1$landmark$stratum=="onset"&r1$landmark$def=="first"&r1$landmark$term=="age10"], finegray_age_onset_first=r1$finegray$shr[r1$finegray$stratum=="onset"&r1$finegray$def=="first"&r1$finegray$term=="age10"],
+  source_adults=unname(fl["source_adults"]), single_episode=unname(fl["single_episode"]), rheum_post_flagged=unname(fl["rheum_post_flagged"]), hmm_minus2LL=r2$hmm$minus2LL,
   confirmed_def_modplus=unname(r2$interv_confirmed["n_modplus"]), confirmed_def_interv=unname(r2$interv_confirmed["n_interv"]))
-tol <- ifelse(grepl("^(cohort|excluded|eligible|events|stricter|hmm_n_pt|stenosis_atrisk|interv_(modplus|dysfunction|analysed|n|died|median)|confirmed_def)", names(vals)), 0,
-              ifelse(grepl("pct$|rate|sojourn", names(vals)), 0.05, 0.005))
+tol <- ifelse(grepl("^(cohort|excluded|eligible|events|stricter|hmm_n_pt|stenosis_atrisk|interv_(modplus|dysfunction|analysed|n|died|median)|confirmed_def|source_adults|single_episode|rheum_post)", names(vals)), 0,
+              ifelse(grepl("minus2LL", names(vals)), 0.5,
+              ifelse(grepl("pct$|rate|sojourn", names(vals)), 0.05, 0.005)))
 if (write_mode) { dir.create("expected", showWarnings=FALSE); write.csv(data.frame(key=names(vals), value=unname(vals), tolerance=tol), "expected/expected_results.csv", row.names=FALSE); cat("manifest written: expected/expected_results.csv (", length(vals), "values )\n"); quit(status=0) }
 exp <- read.csv("expected/expected_results.csv"); ok <- TRUE
-for (i in seq_len(nrow(exp))) { k <- exp$key[i]; got <- vals[[k]]; pass <- !is.null(got) && abs(got - exp$value[i]) <= exp$tolerance[i]
+for (i in seq_len(nrow(exp))) { k <- exp$key[i]; got <- if (k %in% names(vals)) vals[[k]] else NULL; pass <- !is.null(got) && abs(got - exp$value[i]) <= exp$tolerance[i]
   cat(sprintf("%-38s expected %12.4f  got %12.4f  %s\n", k, exp$value[i], ifelse(is.null(got), NA, got), ifelse(pass, "PASS", "FAIL"))); ok <- ok && pass }
 cat(ifelse(ok, "\nALL CHECKS PASSED\n", "\nSOME CHECKS FAILED\n")); quit(status=ifelse(ok, 0, 1))

@@ -1,6 +1,6 @@
 # 07_figures.R: Figures 1-4 from the results objects (PNG, TIFF and PDF at 600 dpi) into outputs/figures/.
 if (!grepl("UTF-8", Sys.getlocale("LC_CTYPE"), ignore.case=TRUE)) for (loc in c("en_US.UTF-8","C.UTF-8")) if (nzchar(suppressWarnings(Sys.setlocale("LC_CTYPE", loc)))) break   # write en dashes and other symbols as UTF-8 even when the calling shell uses the C locale
-suppressPackageStartupMessages({library(ggplot2); library(gridExtra); library(grid); library(cmprsk)})
+suppressPackageStartupMessages({library(ggplot2); library(gridExtra); library(grid); library(cmprsk)}); source("R/00_common.R")
 r1 <- readRDS("outputs/results/results_part1.rds"); r2 <- readRDS("outputs/results/results_part2.rds"); d <- readRDS("data/frame.rds")
 OUT <- "outputs/figures/"; dir.create(OUT, showWarnings=FALSE, recursive=TRUE); pdf(NULL)   # null device: gtable building never opens Rplots.pdf
 # PNG and TIFF (600 dpi, LZW) are drawn by ragg. The vector PDF needs a device that embeds Unicode glyphs (en dash, >=): quartz on macOS, cairo_pdf elsewhere;
@@ -19,14 +19,17 @@ fl <- r2$flow; m3 <- unique(r1$main[r1$main$domain=="D3", c("stratum","def","n_p
 cb <- unique(r1$confirmed_baseline[, c("def","n_pt","events")])
 box <- function(x, y, w, h, lab, fill="#EEF4FB", fs=9.5) { grid.roundrect(x=unit(x,"npc"), y=unit(y,"npc"), width=unit(w,"npc"), height=unit(h,"npc"), gp=gpar(fill=fill, col="#1F4E79", lwd=1), r=unit(2,"mm")); grid.text(lab, x=unit(x,"npc"), y=unit(y,"npc"), gp=gpar(fontfamily="sans", fontsize=fs, lineheight=0.95)) }
 seg <- function(x0,y0,x1,y1,arr=TRUE) grid.lines(x=unit(c(x0,x1),"npc"), y=unit(c(y0,y1),"npc"), arrow=if (arr) arrow(length=unit(2,"mm"), type="closed") else NULL, gp=gpar(fill="black", col="black", lwd=1))
-draw_flow <- function(){ grid.newpage(); pushViewport(viewport(width=0.94, height=0.96))
-  # top box
-  bx <- 0.40; box(bx,0.925,0.58,0.10, sprintf("Adults with two or more transthoracic echocardiography\nepisodes carrying the annular calcification field\nn = %s", format(fl["eligible"],big.mark=",")))
-  seg(bx,0.875,bx,0.745)                                   # down to analysis cohort (arrowhead at box top)
-  seg(bx,0.81,0.585,0.81)                                  # branch to exclusion box (arrowhead at its left edge)
-  box(0.79,0.81,0.41,0.11, sprintf("Excluded, n = %d\nMitral prosthesis or annuloplasty ring\nat or before index, n = %d\nRheumatic mitral valve on any report, n = %d", fl["excl_pros"]+fl["excl_rheum"], fl["excl_pros"], fl["excl_rheum"]), fill="#F2F2F2", fs=9)
-  box(bx,0.695,0.40,0.09, sprintf("Analysis cohort\nn = %s", format(fl["analysed"],big.mark=",")))
-  seg(bx,0.65,bx,0.585,arr=FALSE); seg(0.14,0.585,0.78,0.585,arr=FALSE)
+draw_flow <- function(){ grid.newpage(); pushViewport(viewport(width=0.94, height=0.97))
+  bx <- 0.34
+  box(bx,0.955,0.50,0.075, sprintf("Adults with a transthoracic echocardiography study\ncarrying the annular calcification field, n = %s", format(fl["source_adults"],big.mark=",")), fs=9)
+  seg(bx,0.9175,bx,0.865); seg(bx,0.895,0.60,0.895)
+  box(0.80,0.895,0.40,0.05, sprintf("Only one echocardiography episode, n = %s", format(fl["single_episode"],big.mark=",")), fill="#F2F2F2", fs=9)
+  box(bx,0.825,0.50,0.075, sprintf("Adults with two or more episodes\nn = %s", format(fl["eligible"],big.mark=",")), fs=9)
+  seg(bx,0.7875,bx,0.705)                                  # down to analysis cohort
+  seg(bx,0.755,0.60,0.755)                                 # branch to exclusion box
+  box(0.80,0.755,0.40,0.11, sprintf("Excluded, n = %d\nMitral prosthesis or annuloplasty ring\nby the end of the index episode, n = %d\nRheumatic mitral valve reported by the\nend of the index episode, n = %d", fl["excl_pros"]+fl["excl_rheum"], fl["excl_pros"], fl["excl_rheum"]), fill="#F2F2F2", fs=8.5)
+  box(bx,0.665,0.40,0.075, sprintf("Analysis cohort\nn = %s", format(fl["analysed"],big.mark=",")))
+  seg(bx,0.6275,bx,0.585,arr=FALSE); seg(0.14,0.585,0.78,0.585,arr=FALSE)
   for (x in c(0.14,0.46,0.78)) seg(x,0.585,x,0.535)
   box(0.14,0.44,0.27,0.18, sprintf("No reported calcification at index\n(onset cohort)\nn = %s\n\nFirst-observed events %s\nConfirmed events %s", format(fl["blank"],big.mark=","), ev("onset","first"), ev("onset","confirmed")), fs=9)
   box(0.46,0.44,0.27,0.18, sprintf("Mild calcification at index\n(progression cohort)\nn = %s\n\nFirst-observed events %s\nConfirmed events %s", format(fl["mild"],big.mark=","), ev("progression","first"), ev("progression","confirmed")), fs=9)
@@ -62,7 +65,7 @@ fl2$fate <- factor(fl2$fate, levels=c("Never re-examined","Refuted","Confirmed")
 gB <- ggplot(fl2, aes(xlab, v, fill=fate)) + geom_col(width=0.68) + facet_wrap(~stratum, scales="free_x") +
   scale_fill_manual(values=c(`Never re-examined`="#D9D9D9", Refuted="#E69F00", Confirmed="#0072B2"), breaks=c("Confirmed","Refuted","Never re-examined"), name=NULL) +
   scale_y_continuous(labels=function(x) paste0(100*x,"%"), expand=c(0,0), limits=c(0,1), breaks=c(0,0.25,0.5,0.75,1)) +
-  labs(x="Age at index, years", y="Share of first moderate or\nsevere reads", title="B") + th_base +
+  labs(x="Age at the qualifying echocardiogram, years", y="Share of first moderate or\nsevere reads", title="B") + th_base +
   theme(panel.spacing.x=unit(0.35,"cm"), axis.title.x=element_text(margin=margin(t=4)), axis.title.y=element_text(margin=margin(r=6)), legend.spacing.x=unit(0.25,"cm"), legend.box.margin=margin(2,0,0,0))
 g2 <- arrangeGrob(gA, gB, ncol=1, heights=c(1,1))
 save_fig(g2, "Figure2_reliability", 7.1, 7.9)
@@ -97,15 +100,21 @@ gB <- ggplot(b, aes(x=hr, y=y, colour=sig)) + geom_vline(xintercept=1, linetype=
 g <- arrangeGrob(gA, gB, ncol=1, heights=c(1.12,1))
 save_fig(g, "Figure3_forest", 7.1, 8.4)
 cat("Figure 3 written\n")
-# ---------- Figure 4: cumulative incidence of calcific mitral stenosis ----------
-th <- theme_classic(base_size=12, base_family="sans") + theme(axis.text=element_text(colour="black"), plot.title=element_text(face="bold", size=11), legend.position="bottom")
+# ---------- Figure 4: cumulative incidence of calcific mitral stenosis, with 95% bands and numbers at risk ----------
+th <- theme_classic(base_size=11, base_family="sans") + theme(axis.text=element_text(colour="black"), plot.title=element_text(face="bold", size=11), legend.position="top", legend.text=element_text(size=9), legend.title=element_text(size=9))
 x <- d[d$ms0==0 & !is.na(d$ms0),]; grp <- ifelse(x$sev1==0,"No reported calcification", ifelse(x$sev1==1,"Mild","Moderate or severe"))
-ev <- ifelse(!is.na(x$t_ms),1, ifelse(!is.na(x$t_death) & (is.na(x$t_last) | x$t_death<=x$t_last+30),2,0)); tt <- pmax(ifelse(!is.na(x$t_ms), x$t_ms, ifelse(ev==2, x$t_death, x$t_last)),1)/365.25
+z4 <- mk(x$t_ms, x$t_death, x$t_last_study); tt <- z4$tt; ev <- z4$ev
 ci <- cuminc(tt, ev, grp); df <- do.call(rbind, lapply(names(ci)[grepl(" 1$", names(ci))], function(n) data.frame(group=sub(" 1$","",n), time=ci[[n]]$time, est=ci[[n]]$est, var=ci[[n]]$var)))
-df$group <- factor(df$group, levels=c("No reported calcification","Mild","Moderate or severe")); df <- df[df$time<=8,]
-g4 <- ggplot(df, aes(time, est, colour=group, linetype=group)) + geom_step(linewidth=0.9) + scale_colour_manual(values=c("#56B4E9","#E69F00","#D55E00"), name="Annular calcification at index") + scale_linetype_manual(values=c("dotted","dashed","solid"), name="Annular calcification at index") +
-  scale_y_continuous(labels=function(v) paste0(100*v,"%")) + scale_x_continuous(breaks=0:8) + labs(x="Years from index echocardiogram", y="Cumulative incidence of calcific mitral stenosis\n(mean gradient 5 mmHg or more, death as competing risk)") + th
+df$group <- factor(df$group, levels=c("No reported calcification","Mild","Moderate or severe")); df <- df[df$time<=8,]; df$lo <- pmax(df$est-1.96*sqrt(df$var),0); df$hi <- pmin(df$est+1.96*sqrt(df$var),1)
+cols <- c("#56B4E9","#E69F00","#D55E00")
+g4 <- ggplot(df, aes(time, est, colour=group, fill=group, linetype=group)) + geom_ribbon(aes(ymin=lo, ymax=hi), alpha=0.15, colour=NA, stat="identity") + geom_step(linewidth=0.9) +
+  scale_colour_manual(values=cols, name="Annular calcification at index") + scale_fill_manual(values=cols, name="Annular calcification at index") + scale_linetype_manual(values=c("dotted","dashed","solid"), name="Annular calcification at index") +
+  scale_y_continuous(labels=function(v) paste0(100*v,"%"), limits=c(0,NA)) + scale_x_continuous(breaks=0:8, limits=c(0,8)) + labs(x="Years from index echocardiogram", y="Cumulative incidence of calcific mitral stenosis\n(mean gradient 5 mmHg or more; death as competing risk)") + th
 nr <- sapply(levels(df$group), function(g) sapply(0:8, function(t) sum(tt[grp==g] >= t))); rownames(nr) <- 0:8
-save_fig(g4, "Figure4_calcific_stenosis_CIF", 7, 5.2); write.csv(nr, "outputs/tables/Figure4_numbers_at_risk.csv")
+rt <- data.frame(group=factor(rep(colnames(nr), each=nrow(nr)), levels=rev(levels(df$group))), time=rep(0:8, times=ncol(nr)), n=as.vector(nr))
+gR <- ggplot(rt, aes(time, group, label=format(n, big.mark=","))) + geom_text(size=2.7, family="sans") + scale_x_continuous(breaks=0:8, limits=c(0,8)) + labs(x=NULL, y=NULL, title="Number at risk") +
+  theme_classic(base_size=9, base_family="sans") + theme(axis.line=element_blank(), axis.ticks=element_blank(), axis.text.x=element_blank(), axis.text.y=element_text(colour="black", size=8), plot.title=element_text(size=9, face="plain"), plot.margin=margin(0,8,4,4))
+g4r <- arrangeGrob(g4, gR, ncol=1, heights=c(4.2,1))
+save_fig(g4r, "Figure4_calcific_stenosis_CIF", 7, 6.2); write.csv(nr, "outputs/tables/Figure4_numbers_at_risk.csv")
 cat("Figure 4 regenerated at 600 dpi\n")
 invisible(dev.off())
