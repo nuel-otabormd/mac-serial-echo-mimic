@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the accompanying article."
+title: "Analysis code: Onset, progression and consequences of mitral annular calcification on serial clinical echocardiography (MIMIC-IV)"
+type: software
+authors:
+  - family-names: Otabor
+    given-names: Emmanuel
+  - family-names: Hassan
+    given-names: Abdulraheem
+  - family-names: Okunlola
+    given-names: Ayoyimika
+  - family-names: Lam
+    given-names: Justin
+  - family-names: Alomari
+    given-names: Laith
+  - family-names: Hamilton
+    given-names: Michael
+version: 1.0.0
+date-released: 2026-08-17
+license: MIT
