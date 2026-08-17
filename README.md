@@ -105,7 +105,9 @@ git archive --format=zip -o mac-serial-echo-mimic.zip HEAD
 ```
 
 Both send exactly the tracked files. Do not zip the working folder itself: after a run it contains `data/` and
-`outputs/`, which hold patient-level derived data covered by the PhysioNet data use agreement.
+`outputs/`, which hold patient-level derived data covered by the PhysioNet data use agreement. If your working copy sits
+in a cloud-synced folder, keep those two directories elsewhere and put symlinks named `data` and `outputs` in the
+repository; the scripts only use the relative paths and `.gitignore` covers both forms.
 
 ## Citation and licence
 
