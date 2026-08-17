@@ -10,8 +10,14 @@ version: 1.0.1
 date-released: 2026-08-17
 license: MIT
 repository-code: "https://github.com/nuel-otabormd/mac-serial-echo-mimic"
-doi: 10.5281/zenodo.21983973
+doi: 10.5281/zenodo.21983972
 identifiers:
   - type: doi
     value: 10.5281/zenodo.21983972
-    description: "Concept DOI covering all versions of the archived code"
+    description: "Concept DOI, resolves to the latest archived version"
+  - type: doi
+    value: 10.5281/zenodo.21984213
+    description: "Version 1.0.1, the manuscript submission version"
+  - type: doi
+    value: 10.5281/zenodo.21983973
+    description: "Version 1.0.0"
