@@ -109,6 +109,9 @@ Both send exactly the tracked files. Do not zip the working folder itself: after
 
 ## Citation and licence
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21983973.svg)](https://doi.org/10.5281/zenodo.21983973)
+
 Code is released under the MIT licence (`LICENSE`). The repository lives at
-https://github.com/nuel-otabormd/mac-serial-echo-mimic. Please cite the accompanying article; the DOI of the archived
-release is recorded in `CITATION.cff` once minted.
+https://github.com/nuel-otabormd/mac-serial-echo-mimic; release v1.0.0 (the manuscript submission version) is archived on
+Zenodo, doi:10.5281/zenodo.21983973 (concept DOI for all versions: 10.5281/zenodo.21983972). Please cite the accompanying
+article and, for the code, the Zenodo record; `CITATION.cff` carries the metadata.
