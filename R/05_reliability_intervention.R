@@ -56,7 +56,7 @@ res2$internal_check <- c(hr=s2[1,1], lo=s2[1,3], hi=s2[1,4], n=nrow(g), events=s
 a <- d[!is.na(d$t_modany),]; ph <- a[!is.na(a$t_pheno),]; ph <- ph[!( !is.na(ph$t_interv) & ph$t_interv < ph$t_pheno),]; ph$iv <- !is.na(ph$t_interv) & ph$t_interv >= ph$t_pheno
 res2$interv <- list(n_modplus=nrow(a), n_pheno=sum(!is.na(a$t_pheno)), pheno_mr=sum(a$pheno_type=="mr",na.rm=T), pheno_sten=sum(a$pheno_type=="sten",na.rm=T), n_analysed=nrow(ph), n_interv=sum(ph$iv), med_days=median((ph$t_interv-ph$t_pheno)[ph$iv]), isolated=sum(ph$interv_isolated[ph$iv]==1,na.rm=T), modality=table(ph$interv_modality[ph$iv]), died=sum(!is.na(ph$t_death)), med_days_death=median((ph$t_death-ph$t_pheno)[!is.na(ph$t_death)]))
 ph$sten <- as.integer(ph$pheno_type=="sten"); ph$age10p <- (ph$age0 + ph$t_pheno/365.25 - 75)/10
-# intervention by type of dysfunction, and the same cascade under the confirmed outcome definition (index moderate or greater, or a confirmed event)
+# intervention by type of dysfunction, and the same cascade under the confirmed outcome definition (index moderate or severe, or a confirmed event)
 res2$interv$by_type <- c(sten_n=sum(ph$sten==1), sten_iv=sum(ph$iv[ph$sten==1]), mr_n=sum(ph$sten==0), mr_iv=sum(ph$iv[ph$sten==0]))
 confsel <- d$sev1>=2 | !is.na(d$t_conf); ac <- d[confsel,]; phc <- ac[!is.na(ac$t_pheno),]; phc <- phc[!( !is.na(phc$t_interv) & phc$t_interv < phc$t_pheno),]; ivc <- !is.na(phc$t_interv) & phc$t_interv >= phc$t_pheno
 res2$interv_confirmed <- c(n_modplus=nrow(ac), n_index=sum(ac$sev1>=2), n_pheno=sum(!is.na(ac$t_pheno)), n_analysed=nrow(phc), n_interv=sum(ivc), died=sum(!is.na(phc$t_death)))

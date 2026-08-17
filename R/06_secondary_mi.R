@@ -1,5 +1,5 @@
 # 06_secondary_mi.R: secondary models refitted across the 20 imputed datasets and pooled by Rubin's rules:
-#   (a) calcific mitral stenosis with reaching moderate or greater MAC as a time-varying exposure (Cox, stratified by index grade),
+#   (a) calcific mitral stenosis with reaching moderate or severe MAC as a time-varying exposure (Cox, stratified by index grade),
 #   (b) receipt of intervention among patients with moderate or greater mitral dysfunction (logistic),
 #   (c) survival after documented dysfunction with intervention as a time-varying exposure (Cox).
 # Intervention logistic model (Table 4C) refitted across the 20 imputed datasets (data/mice.rds) and pooled by Rubin's rules.
@@ -18,7 +18,7 @@ mk_eg <- function(v) factor(ifelse(v >= 60, "ge60", ifelse(v >= 30, "30to60", "l
 chk <- !is.na(ph$lvef); cat("ef_cat reproduces frame:", mean(as.character(mk_ef(ph$lvef[chk]))==as.character(ph$ef_cat[chk])), "\n")
 chk2 <- !is.na(ph$egfr_base); cat("eg reproduces frame:", mean(as.character(mk_eg(ph$egfr_base[chk2]))==as.character(ph$eg[chk2])), "\n")
 ph$ef_cat <- factor(as.character(ph$ef_cat), levels=c("ge50","lt40","40to49")); ph$eg <- factor(as.character(ph$eg), levels=c("ge60","30to60","lt30"))
-# ---- (a) calcific stenosis: reaching moderate or greater MAC as a time-varying exposure, MI-pooled ----
+# ---- (a) calcific stenosis: reaching moderate or severe MAC as a time-varying exposure, MI-pooled ----
 suppressPackageStartupMessages(library(survival))
 mk <- function(tp, td, tl){ ev <- ifelse(!is.na(tp),1, ifelse(!is.na(td) & (is.na(tl) | td<=tl+30),2,0)); tt <- ifelse(!is.na(tp),tp, ifelse(ev==2, td, tl)); list(ev=ev, tt=pmax(tt,1)/365.25) }
 MU <- c(E_sept=mean(d$E_sept,na.rm=T), la=mean(d$la,na.rm=T), ivs=mean(d$ivs,na.rm=T), bmi=mean(d$bmi,na.rm=T)); SD <- c(E_sept=sd(d$E_sept,na.rm=T), la=sd(d$la,na.rm=T), ivs=sd(d$ivs,na.rm=T), bmi=sd(d$bmi,na.rm=T))
@@ -33,7 +33,7 @@ for (i in seq_len(imp$m)) {
   tvc[[i]] <- coxph(Surv(tstart, tstop, endpt) ~ mac + age10 + male + era_n + setting + av + ef_cat + zE + zla + zivs + zbmi + af + eg + esrd + strata(sev1), data=tm) }
 tp <- summary(pool(as.mira(tvc)), conf.int=TRUE, exponentiate=TRUE)
 ms_tvc_mi <- data.frame(term=tp$term, hr=tp$estimate, lo=tp$`2.5 %`, hi=tp$`97.5 %`, p=tp$p.value); ms_tvc_mi_n <- c(n=nrow(x0), events=sum(x0$ev))
-cat(sprintf("stenosis, reaching moderate or greater MAC (time-varying), MI-pooled: HR %.2f (%.2f-%.2f); n = %d, events = %d\n", ms_tvc_mi$hr[ms_tvc_mi$term=="mac"], ms_tvc_mi$lo[ms_tvc_mi$term=="mac"], ms_tvc_mi$hi[ms_tvc_mi$term=="mac"], ms_tvc_mi_n["n"], ms_tvc_mi_n["events"]))
+cat(sprintf("stenosis, reaching moderate or severe MAC (time-varying), MI-pooled: HR %.2f (%.2f-%.2f); n = %d, events = %d\n", ms_tvc_mi$hr[ms_tvc_mi$term=="mac"], ms_tvc_mi$lo[ms_tvc_mi$term=="mac"], ms_tvc_mi$hi[ms_tvc_mi$term=="mac"], ms_tvc_mi_n["n"], ms_tvc_mi_n["events"]))
 # ---- (b) intervention logistic ----
 cc <- glm(iv ~ age10p + male + ef_cat + eg + esrd + sten + af, data=ph, family=binomial)
 fits <- vector("list", imp$m)

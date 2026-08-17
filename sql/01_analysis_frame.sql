@@ -94,7 +94,7 @@ mv AS (SELECT subject_id, hadm_id, MIN(chartdate) mvdate,
 conc AS (SELECT m.subject_id, m.hadm_id, MAX(IF((p.icd_version=10 AND REGEXP_CONTAINS(p.icd_code,r"^021[0-3]")) OR (p.icd_version=9 AND p.icd_code LIKE "361%"),1,0)) cabg,
    MAX(IF((p.icd_version=10 AND REGEXP_CONTAINS(p.icd_code,r"^02[QRU]F")) OR (p.icd_version=9 AND p.icd_code IN ("3511","3521","3522","3505","3506")),1,0)) avs FROM mv m JOIN prc p USING(subject_id, hadm_id) GROUP BY 1,2),
 firstmv AS (SELECT m.subject_id, MIN(m.mvdate) mvdate, ARRAY_AGG(m.modality ORDER BY m.mvdate, m.hadm_id LIMIT 1)[OFFSET(0)] modality, ARRAY_AGG(IF(c.cabg=1 OR c.avs=1,0,1) ORDER BY m.mvdate, m.hadm_id LIMIT 1)[OFFSET(0)] isolated FROM mv m JOIN conc c USING(subject_id, hadm_id) GROUP BY 1),
--- moderate or greater mitral dysfunction: first study at or after the first moderate or greater MAC read with moderate or greater MR or MS, or mean gradient >= 5 mmHg
+-- moderate or greater mitral dysfunction: first study at or after the first moderate or severe MAC read with moderate or greater MR or MS, or mean gradient >= 5 mmHg
 modany AS (SELECT c.subject_id, IF(c.sev1>=2, c.d1, e.t_first) t_mod FROM coh c LEFT JOIN ev e USING(subject_id)),
 stud2 AS (SELECT s.subject_id, s.measurement_datetime sdt,
    MAX(IF(s.measurement="mitral_regurg" AND REGEXP_CONTAINS(LOWER(s.result),r"^mod|sever"),1,0)) mr,

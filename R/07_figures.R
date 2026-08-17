@@ -30,7 +30,7 @@ draw_flow <- function(){ grid.newpage(); pushViewport(viewport(width=0.94, heigh
   for (x in c(0.14,0.46,0.78)) seg(x,0.585,x,0.535)
   box(0.14,0.44,0.27,0.18, sprintf("No reported calcification at index\n(onset cohort)\nn = %s\n\nFirst-observed events %s\nConfirmed events %s", format(fl["blank"],big.mark=","), ev("onset","first"), ev("onset","confirmed")), fs=9)
   box(0.46,0.44,0.27,0.18, sprintf("Mild calcification at index\n(progression cohort)\nn = %s\n\nFirst-observed events %s\nConfirmed events %s", format(fl["mild"],big.mark=","), ev("progression","first"), ev("progression","confirmed")), fs=9)
-  box(0.78,0.44,0.34,0.18, sprintf("Moderate or severe calcification at index\n(advanced disease)\nn = %s\n\nDescribed together with patients reaching\nmoderate or greater during follow-up", format(fl["modsev"],big.mark=",")), fs=9)
+  box(0.78,0.44,0.34,0.18, sprintf("Moderate or severe calcification at index\n(advanced disease)\nn = %s\n\nDescribed together with patients reaching\nmoderate or severe during follow-up", format(fl["modsev"],big.mark=",")), fs=9)
   seg(0.14,0.35,0.14,0.30); box(0.14,0.21,0.27,0.17, sprintf("Stricter onset cohort:\nfirst two episodes both blank,\nfollowed from the second\nn = %s\nevents: %s first-observed,\n%s confirmed", format(cb$n_pt[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="confirmed"],big.mark=",")), fill="#F2F2F2", fs=9)
   popViewport() }
 ragg::agg_png(paste0(OUT,"Figure1_flow.png"), width=7.5, height=7.5, units="in", res=600, background="white"); draw_flow(); invisible(dev.off())
@@ -62,7 +62,7 @@ fl2$fate <- factor(fl2$fate, levels=c("Never re-examined","Refuted","Confirmed")
 gB <- ggplot(fl2, aes(xlab, v, fill=fate)) + geom_col(width=0.68) + facet_wrap(~stratum, scales="free_x") +
   scale_fill_manual(values=c(`Never re-examined`="#D9D9D9", Refuted="#E69F00", Confirmed="#0072B2"), breaks=c("Confirmed","Refuted","Never re-examined"), name=NULL) +
   scale_y_continuous(labels=function(x) paste0(100*x,"%"), expand=c(0,0), limits=c(0,1), breaks=c(0,0.25,0.5,0.75,1)) +
-  labs(x="Age at index, years", y="Share of first moderate or\ngreater reads", title="B") + th_base +
+  labs(x="Age at index, years", y="Share of first moderate or\nsevere reads", title="B") + th_base +
   theme(panel.spacing.x=unit(0.35,"cm"), axis.title.x=element_text(margin=margin(t=4)), axis.title.y=element_text(margin=margin(r=6)), legend.spacing.x=unit(0.25,"cm"), legend.box.margin=margin(2,0,0,0))
 g2 <- arrangeGrob(gA, gB, ncol=1, heights=c(1,1))
 save_fig(g2, "Figure2_reliability", 7.1, 7.9)

@@ -9,12 +9,12 @@ same data produce identical results, and the final step checks the run against t
 Adults with two or more transthoracic echocardiography episodes carrying the annular calcification field are followed from
 their first (index) episode. Three questions are asked in order:
 
-1. Which characteristics are associated with reaching moderate or greater MAC, from no reported calcification (onset) and
-   from mild calcification (progression), under two outcome definitions (first-observed and confirmed moderate or greater
+1. Which characteristics are associated with reaching moderate or severe MAC, from no reported calcification (onset) and
+   from mild calcification (progression), under two outcome definitions (first-observed and confirmed moderate or severe
    read), with death as a competing event?
 2. How reliable is the routinely reported grade? Transitions between consecutive reads, the fate of every first moderate or
    greater read, and a hidden Markov model that treats the underlying grade as unobserved.
-3. What follows moderate or greater MAC: calcific mitral stenosis, moderate or greater mitral dysfunction, intervention, death.
+3. What follows moderate or severe MAC: calcific mitral stenosis, moderate or greater mitral dysfunction, intervention, death.
 
 The pre-specified analysis plan is `protocol/MAC_Study_Protocol_v2.4.md`.
 

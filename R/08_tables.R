@@ -16,12 +16,12 @@ get <- function(df, st, de, tm, cols=c("hr","lo","hi")) { z <- df[df$stratum==st
 # ---------- Table 1 ----------
 write.csv(r2$table1, paste0(TB, "table1_baseline.csv"), row.names=FALSE); writeLines(r2$table1_notes, paste0(TB, "table1_notes.txt"))
 
-# ---------- Table 2A: transitions between consecutive episodes; 2B: fate of the first moderate or greater read ----------
+# ---------- Table 2A: transitions between consecutive episodes; 2B: fate of the first moderate or severe read ----------
 tr <- r2$transitions; trp <- r2$transitions_pct
 t2a <- data.frame(grade=c("None (blank)","Mild","Moderate","Severe"), consecutive_pairs=rowSums(tr), next_none=sprintf("%.1f",trp[,1]), next_mild=sprintf("%.1f",trp[,2]),
                   next_moderate=sprintf("%.1f",trp[,3]), next_severe=sprintf("%.1f",trp[,4]))
 write.csv(t2a, paste0(TB, "table2a_transitions.csv"), row.names=FALSE)
-extra <- data.frame(sequence=c("mild newly appeared (previous episode blank): next episode","two successive moderate or greater reads: next episode"),
+extra <- data.frame(sequence=c("mild newly appeared (previous episode blank): next episode","two successive moderate or severe reads: next episode"),
                     n=c(r2$new_mild_next["n"], r2$repeat_mod_next["n"]), next_blank_pct=100*c(r2$new_mild_next["blank"], r2$repeat_mod_next["blank"]),
                     next_mild_pct=100*c(r2$new_mild_next["mild"], r2$repeat_mod_next["mild"]), next_modplus_pct=100*c(r2$new_mild_next["modplus"], r2$repeat_mod_next["modplus"]))
 write.csv(extra, paste0(TB, "table2a_sequences.csv"), row.names=FALSE)
@@ -44,9 +44,9 @@ write.csv(unique(m3[,c("stratum","def","n_pt","events")]), paste0(TB, "table3_co
 inc <- r2$ms_incidence; tvc <- sm$ms_tvc[sm$ms_tvc$term=="mac",]
 t4a <- data.frame(baseline_grade=c("None reported","Mild","Moderate or severe"), at_risk=inc$n, stenosis_events=inc$events, person_years=round(inc$py), rate_per_100py=sprintf("%.2f", inc$rate100), deaths_before_stenosis=inc$deaths)
 write.csv(t4a, paste0(TB, "table4a_stenosis_incidence.csv"), row.names=FALSE)
-writeLines(sprintf("Reaching moderate or greater MAC during follow-up (time-varying exposure, patients with no or mild MAC at index): HR %s; n = %d, events = %d, multiply imputed covariates.", f(tvc$hr,tvc$lo,tvc$hi), sm$ms_tvc_n["n"], sm$ms_tvc_n["events"]), paste0(TB, "table4a_time_varying_note.txt"))
+writeLines(sprintf("Reaching moderate or severe MAC during follow-up (time-varying exposure, patients with no or mild MAC at index): HR %s; n = %d, events = %d, multiply imputed covariates.", f(tvc$hr,tvc$lo,tvc$hi), sm$ms_tvc_n["n"], sm$ms_tvc_n["events"]), paste0(TB, "table4a_time_varying_note.txt"))
 iv <- r2$interv; bt <- iv$by_type; ic <- r2$interv_confirmed
-t4b <- data.frame(step=c("Patients with moderate or greater MAC at index or follow-up","Developed moderate or greater mitral dysfunction","Regurgitation-led","Stenosis-led or raised gradient",
+t4b <- data.frame(step=c("Patients with moderate or severe MAC at index or follow-up","Developed moderate or greater mitral dysfunction","Regurgitation-led","Stenosis-led or raised gradient",
                           "Without a prior mitral procedure","Mitral intervention after the dysfunction was documented","After stenosis-led dysfunction","After regurgitation-led dysfunction",
                           "Isolated (no concomitant bypass or aortic valve surgery)","Died after the echocardiogram showing dysfunction"),
                   n=c(iv$n_modplus, iv$n_pheno, iv$pheno_mr, iv$pheno_sten, iv$n_analysed, iv$n_interv, bt["sten_iv"], bt["mr_iv"], iv$isolated, iv$died),
