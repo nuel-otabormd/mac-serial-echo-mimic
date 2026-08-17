@@ -4,7 +4,7 @@
 # Body mass index from reported height and weight (implausible values set missing); E/e' restricted to a plausible range;
 # eGFR by CKD-EPI 2021 from the lowest (baseline), median and most recent creatinine of the year before index.
 source("R/00_common.R")
-d <- read.csv("data/frame.csv", stringsAsFactors=FALSE)
+d <- read.csv("data/frame.csv", stringsAsFactors=FALSE); d <- d[order(d$pid),]; rownames(d) <- NULL   # BigQuery returns rows in no fixed order; sort so that seeded steps (imputation) are reproducible
 d$bmi <- d$wt/(d$ht/100)^2; d$bmi[d$bmi<12 | d$bmi>70 | !is.finite(d$bmi)] <- NA
 d$E_sept[d$E_sept>60 | d$E_sept<2] <- NA
 k <- ifelse(d$male==1,0.9,0.7); a <- ifelse(d$male==1,-0.302,-0.241); f <- ifelse(d$male==1,1,1.012)

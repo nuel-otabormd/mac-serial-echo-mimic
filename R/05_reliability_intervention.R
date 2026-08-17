@@ -4,7 +4,7 @@
 # at the qualifying episode separated from dysfunction developing later; confirmed definition counted from the confirming
 # echocardiogram), cumulative incidence of intervention with death as a competing event, and mortality at fixed horizons.
 suppressPackageStartupMessages({library(survival); library(msm); library(cmprsk)}); source("R/00_common.R")
-d <- readRDS("data/frame.rds"); p <- read.csv("data/panel.csv"); p <- p[p$pid %in% d$pid,]; res2 <- list()
+d <- readRDS("data/frame.rds"); p <- read.csv("data/panel.csv"); p <- p[order(p$pid,p$rn),]; p <- p[p$pid %in% d$pid,]; res2 <- list()
 # vital status is known for up to one year after the last hospital contact in MIMIC-IV: survivors are censored one year after
 # their last echocardiogram in the descriptive survival summaries (deaths recorded later than that are censored at that point)
 d$t_end_vital <- ifelse(!is.na(d$t_death) & d$t_death <= d$t_last_study + 365, d$t_death, d$t_last_study + 365); d$dead_vital <- as.integer(!is.na(d$t_death) & d$t_death <= d$t_last_study + 365)

@@ -4,7 +4,7 @@
 # that convergence and the stability of the maximum can be reported. Diagnostics: observed versus model-expected prevalence
 # of the reported grades over time.
 suppressPackageStartupMessages({library(msm); library(parallel)}); source("R/00_common.R")
-p <- read.csv("data/panel.csv"); f <- readRDS("data/frame.rds")
+p <- read.csv("data/panel.csv"); p <- p[order(p$pid,p$rn),]; f <- readRDS("data/frame.rds")
 p <- p[p$pid %in% f$pid,]                                            # primary cohort only
 d <- p[,c("pid","t","sev")]; d$state <- d$sev+1L; d$t <- d$t/365.25
 dth <- f[!is.na(f$t_death) & f$t_death > f$t_last, c("pid","t_death")]; dth <- data.frame(pid=dth$pid, t=dth$t_death/365.25, sev=NA, state=5L)
