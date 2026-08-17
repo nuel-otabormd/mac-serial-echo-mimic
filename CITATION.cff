@@ -6,7 +6,7 @@ authors:
   - family-names: Otabor
     given-names: Emmanuel
     orcid: "https://orcid.org/0009-0006-7902-6909"
-version: 1.0.0
+version: 1.0.1
 date-released: 2026-08-17
 license: MIT
 repository-code: "https://github.com/nuel-otabormd/mac-serial-echo-mimic"

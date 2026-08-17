@@ -89,7 +89,7 @@ Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can 
 ```
 sql/        BigQuery extraction (two queries and the wrapper script)
 R/          analysis scripts 01–09, run in order by run_all.sh
-protocol/   the pre-specified analysis plan
+protocol/   the analysis plan as archived (v2.4) and DEVIATIONS.md, the dated note on how the final analysis differs from it
 expected/   manifest of the reported results used by the verification step
 renv.lock   package versions used for the reported results
 data/       created by step 1–3 (ignored by git)
