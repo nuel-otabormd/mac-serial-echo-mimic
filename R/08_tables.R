@@ -1,5 +1,6 @@
 # 08_tables.R: main and supplementary tables as CSV files in outputs/tables/, built only from the results objects.
 # Formatting follows the manuscript: hazard ratios as "HR (lower\u2013upper)", percentages as in the tables.
+if (!grepl("UTF-8", Sys.getlocale("LC_CTYPE"), ignore.case=TRUE)) for (loc in c("en_US.UTF-8","C.UTF-8")) if (nzchar(suppressWarnings(Sys.setlocale("LC_CTYPE", loc)))) break   # write en dashes and other symbols as UTF-8 even when the calling shell uses the C locale
 r1 <- readRDS("outputs/results/results_part1.rds"); r2 <- readRDS("outputs/results/results_part2.rds"); sm <- readRDS("outputs/results/secondary_mi.rds")
 TB <- "outputs/tables/"; dir.create(TB, showWarnings=FALSE, recursive=TRUE)
 f  <- function(h, l, u, d=2) sprintf(paste0("%.",d,"f (%.",d,"f\u2013%.",d,"f)"), h, l, u)
@@ -32,7 +33,7 @@ write.csv(t2b, paste0(TB, "table2b_fate.csv"), row.names=FALSE)
 # ---------- Table 3: main models (D3) with the onset-versus-progression interaction ----------
 m3 <- r1$main[r1$main$domain=="D3",]; it <- r1$interaction; it$term2 <- sub("^prog:","", sub(":prog$","", it$term)); itf <- it[it$def=="first",]
 imap <- c(age10="age10", male="male", av_catmild="av_lin", av_catmod=NA, av_catsev=NA, ef_catlt40="ef_catlt40", ef_cat40to49="ef_cat40to49", zE="zE", zla="zla", zivs="zivs", zbmi="zbmi", af="af", eg30to60="eg30to60", eglt30="eglt30", esrd="esrd")
-t3 <- do.call(rbind, lapply(names(imap), function(tm) { z <- itf[itf$term2==imap[tm],]
+t3 <- do.call(rbind, lapply(names(imap), function(tm) { z <- if (is.na(imap[tm])) itf[0,] else itf[itf$term2==imap[tm],]   # moderate/severe AVC rows carry no ratio (the interaction is per grade)
   data.frame(characteristic=unname(lab[tm]), onset_first=get(m3,"onset","first",tm), onset_confirmed=get(m3,"onset","confirmed",tm), progression_first=get(m3,"progression","first",tm),
              progression_confirmed=get(m3,"progression","confirmed",tm), hr_ratio_progression_vs_onset=if (nrow(z)) f(z$hr,z$lo,z$hi) else "", p_interaction=if (nrow(z)) fp(z$p) else "") }))
 t3$note <- ifelse(t3$characteristic==lab["av_catmild"], "HR ratio for aortic valve calcification is per grade", "")

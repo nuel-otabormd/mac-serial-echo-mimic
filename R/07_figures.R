@@ -1,8 +1,18 @@
 # 07_figures.R: Figures 1-4 from the results objects (PNG, TIFF and PDF at 600 dpi) into outputs/figures/.
+if (!grepl("UTF-8", Sys.getlocale("LC_CTYPE"), ignore.case=TRUE)) for (loc in c("en_US.UTF-8","C.UTF-8")) if (nzchar(suppressWarnings(Sys.setlocale("LC_CTYPE", loc)))) break   # write en dashes and other symbols as UTF-8 even when the calling shell uses the C locale
 suppressPackageStartupMessages({library(ggplot2); library(gridExtra); library(grid); library(cmprsk)})
 r1 <- readRDS("outputs/results/results_part1.rds"); r2 <- readRDS("outputs/results/results_part2.rds"); d <- readRDS("data/frame.rds")
 OUT <- "outputs/figures/"; dir.create(OUT, showWarnings=FALSE, recursive=TRUE); pdf(NULL)   # null device: gtable building never opens Rplots.pdf
-save_fig <- function(g, name, w, h){ ggsave(paste0(OUT,name,".png"), g, width=w, height=h, dpi=600, bg="white"); ggsave(paste0(OUT,name,".tiff"), g, width=w, height=h, dpi=600, bg="white", compression="lzw"); ggsave(paste0(OUT,name,".pdf"), g, width=w, height=h, bg="white") }
+# PNG and TIFF (600 dpi, LZW) are drawn by ragg. The vector PDF needs a device that embeds Unicode glyphs (en dash, >=): quartz on macOS, cairo_pdf elsewhere;
+# the base pdf() device would silently substitute a hyphen for the en dash. If no such device is available the PDF is skipped with a message and the run continues.
+pdf_dev <- function(filename, width, height, bg="white", ...) {
+  if (Sys.info()[["sysname"]] == "Darwin") grDevices::quartz(file=filename, type="pdf", width=width, height=height, bg=bg)
+  else if (isTRUE(capabilities("cairo"))) grDevices::cairo_pdf(filename=filename, width=width, height=height, bg=bg)
+  else stop("no Unicode-capable PDF device (cairo) on this system") }
+save_fig <- function(g, name, w, h){
+  ragg::agg_png(paste0(OUT,name,".png"), width=w, height=h, units="in", res=600, background="white"); grid.draw(g); invisible(dev.off())
+  ragg::agg_tiff(paste0(OUT,name,".tiff"), width=w, height=h, units="in", res=600, background="white", compression="lzw"); grid.draw(g); invisible(dev.off())
+  tryCatch({ pdf_dev(paste0(OUT,name,".pdf"), width=w, height=h); grid.draw(g); invisible(dev.off()) }, error=function(e) message("PDF for ", name, " skipped: ", conditionMessage(e))) }
 
 # ---------- Figure 1: cohort assembly ----------
 fl <- r2$flow; m3 <- unique(r1$main[r1$main$domain=="D3", c("stratum","def","n_pt","events")]); ev <- function(st, de) format(m3$events[m3$stratum==st & m3$def==de], big.mark=",")
@@ -23,57 +33,69 @@ draw_flow <- function(){ grid.newpage(); pushViewport(viewport(width=0.94, heigh
   box(0.78,0.44,0.34,0.18, sprintf("Moderate or severe calcification at index\n(advanced disease)\nn = %s\n\nDescribed together with patients reaching\nmoderate or greater during follow-up", format(fl["modsev"],big.mark=",")), fs=9)
   seg(0.14,0.35,0.14,0.30); box(0.14,0.21,0.27,0.17, sprintf("Stricter onset cohort:\nfirst two episodes both blank,\nfollowed from the second\nn = %s\nevents: %s first-observed,\n%s confirmed", format(cb$n_pt[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="confirmed"],big.mark=",")), fill="#F2F2F2", fs=9)
   popViewport() }
-png(paste0(OUT,"Figure1_flow.png"), width=7.5, height=7.5, units="in", res=600, bg="white", family="sans"); draw_flow(); dev.off()
-tiff(paste0(OUT,"Figure1_flow.tiff"), width=7.5, height=7.5, units="in", res=600, compression="lzw", bg="white", family="sans"); draw_flow(); dev.off()
-pdf(paste0(OUT,"Figure1_flow.pdf"), width=7.5, height=7.5, family="sans"); draw_flow(); dev.off(); cat("Figure 1 written\n")
+ragg::agg_png(paste0(OUT,"Figure1_flow.png"), width=7.5, height=7.5, units="in", res=600, background="white"); draw_flow(); invisible(dev.off())
+ragg::agg_tiff(paste0(OUT,"Figure1_flow.tiff"), width=7.5, height=7.5, units="in", res=600, background="white", compression="lzw"); draw_flow(); invisible(dev.off())
+tryCatch({ pdf_dev(paste0(OUT,"Figure1_flow.pdf"), width=7.5, height=7.5); draw_flow(); invisible(dev.off()) }, error=function(e) message("PDF for Figure1_flow skipped: ", conditionMessage(e))); cat("Figure 1 written\n")
 
 # ---------- Figure 2: reliability of the reported grade ----------
-th2 <- theme_classic(base_size=13, base_family="sans") + theme(axis.text=element_text(colour="black"), legend.position="bottom", strip.background=element_blank(),
-        strip.text=element_text(size=12), plot.title=element_text(face="bold", size=17, hjust=0), plot.title.position="plot", legend.text=element_text(size=12))
+# Type sizes (points): tick 7, annotation 7.5, axis title 8.5, legend 6.8, panel letter 10 bold. Okabe-Ito bars; ColorBrewer Blues heatmap.
+FS <- c(tick=7, annot=7.5, axlab=8.5, legend=6.8, letter=10); pt <- function(x) x/ggplot2::.pt
+th_base <- theme_classic(base_size=FS["annot"], base_family="sans") +
+  theme(axis.text=element_text(colour="black", size=FS["tick"]), axis.title=element_text(size=FS["axlab"]), strip.background=element_blank(), strip.text=element_text(size=FS["annot"], colour="black"),
+        plot.title=element_text(face="bold", size=FS["letter"], hjust=0), plot.title.position="plot", legend.position="bottom", legend.text=element_text(size=FS["legend"]),
+        legend.key.size=unit(0.28,"cm"), legend.margin=margin(0,0,0,0), axis.line=element_line(linewidth=0.3), axis.ticks=element_line(linewidth=0.3), plot.margin=margin(4,8,4,4))
 E <- r2$hmm$emission; L <- r2$hmm$emission_L; U <- r2$hmm$emission_U; lab <- c("None","Mild","Moderate","Severe")
 em <- expand.grid(true=lab, reported=lab); em$p <- as.vector(E[1:4,1:4]); em$lo <- as.vector(L[1:4,1:4]); em$hi <- as.vector(U[1:4,1:4]); em$true <- factor(em$true, levels=rev(lab)); em$reported <- factor(em$reported, levels=lab)
-em$lab1 <- sprintf("%.0f%%", 100*em$p); em$lab2 <- sprintf("(%.0f\u2013%.0f)", 100*em$lo, 100*em$hi); em$diag <- as.character(em$true)==as.character(em$reported); em$col <- ifelse(em$p>0.5,"white","black")
-gA <- ggplot(em, aes(reported, true, fill=p)) + geom_tile(colour="white", linewidth=0.8) +
-  geom_text(aes(label=lab1, fontface=ifelse(diag,"bold","plain")), colour=em$col, size=5.2, family="sans", nudge_y=0.15) + geom_text(aes(label=lab2), colour=em$col, size=4.2, family="sans", nudge_y=-0.15) +
-  scale_fill_gradient(low="#F7FBFF", high="#08519C", limits=c(0,1), guide="none") + scale_x_discrete(expand=c(0,0)) + scale_y_discrete(expand=c(0,0)) +
-  labs(x="Grade reported on the echocardiogram", y="Model-estimated underlying grade", title="A") + th2 + theme(axis.line=element_blank(), axis.ticks=element_blank()) + coord_fixed(ratio=0.55)
+em$lab1 <- sprintf("%.0f%%", 100*em$p); em$lab2 <- sprintf("(%.0f\u2013%.0f)", 100*em$lo, 100*em$hi); em$diag <- as.character(em$true)==as.character(em$reported)
+em$col <- ifelse(em$p >= 0.62, "white", "grey10")   # white text only on the darkest tiles keeps contrast above 4.5:1
+blues <- c("#F7FBFF","#DEEBF7","#C6DBEF","#9ECAE1","#6BAED6","#4292C6","#2171B5","#08519C","#08306B")
+gA <- ggplot(em, aes(reported, true, fill=p)) + geom_tile(colour=NA) +
+  geom_text(aes(label=lab1, fontface=ifelse(diag,"bold","plain")), colour=em$col, size=pt(FS["axlab"]), family="sans", nudge_y=0.13) +
+  geom_text(aes(label=lab2), colour=em$col, size=pt(FS["annot"]), family="sans", nudge_y=-0.17) +
+  scale_fill_gradientn(colours=blues, limits=c(0,1), guide="none") + scale_x_discrete(expand=c(0,0)) + scale_y_discrete(expand=c(0,0)) +
+  labs(x="Grade reported on the echocardiogram", y="Model-estimated underlying grade", title="A") + th_base +
+  theme(axis.line=element_blank(), axis.ticks=element_blank(), axis.text=element_text(size=FS["tick"], colour="black"), axis.title.x=element_text(margin=margin(t=6)), axis.title.y=element_text(margin=margin(r=8)))
 fa <- r2$first_read_fate; fa <- fa[fa$group=="age_cat",]; fa$level <- factor(fa$level, levels=c("<65","65-74","75-84","85+")); fa$xlab <- paste0(as.character(fa$level), "\nn = ", fa$n)
 fa$stratum <- factor(fa$stratum, levels=c("onset","progression"), labels=c("No reported calcification at index","Mild calcification at index"))
 fl2 <- rbind(data.frame(fa[,c("stratum","level","xlab")], fate="Confirmed", v=fa$confirmed), data.frame(fa[,c("stratum","level","xlab")], fate="Refuted", v=fa$refuted), data.frame(fa[,c("stratum","level","xlab")], fate="Never re-examined", v=fa$last_echo))
 fl2$fate <- factor(fl2$fate, levels=c("Never re-examined","Refuted","Confirmed")); fl2$xlab <- factor(fl2$xlab, levels=unique(fl2$xlab[order(fl2$stratum, fl2$level)]))
-gB <- ggplot(fl2, aes(xlab, v, fill=fate)) + geom_col(width=0.62) + facet_wrap(~stratum, scales="free_x") +
+gB <- ggplot(fl2, aes(xlab, v, fill=fate)) + geom_col(width=0.68) + facet_wrap(~stratum, scales="free_x") +
   scale_fill_manual(values=c(`Never re-examined`="#D9D9D9", Refuted="#E69F00", Confirmed="#0072B2"), breaks=c("Confirmed","Refuted","Never re-examined"), name=NULL) +
-  scale_y_continuous(labels=function(x) paste0(100*x,"%"), expand=c(0,0), limits=c(0,1)) +
-  labs(x="Age at index, years", y="Share of first moderate or\ngreater reads", title="B") + th2 + theme(legend.key.size=unit(0.45,"cm"))
-g2 <- arrangeGrob(gA, gB, ncol=1, heights=c(1.05,1))
-save_fig(g2, "Figure2_reliability", 8, 9.5)
+  scale_y_continuous(labels=function(x) paste0(100*x,"%"), expand=c(0,0), limits=c(0,1), breaks=c(0,0.25,0.5,0.75,1)) +
+  labs(x="Age at index, years", y="Share of first moderate or\ngreater reads", title="B") + th_base +
+  theme(panel.spacing.x=unit(0.35,"cm"), axis.title.x=element_text(margin=margin(t=4)), axis.title.y=element_text(margin=margin(r=6)), legend.spacing.x=unit(0.25,"cm"), legend.box.margin=margin(2,0,0,0))
+g2 <- arrangeGrob(gA, gB, ncol=1, heights=c(1,1))
+save_fig(g2, "Figure2_reliability", 7.1, 7.9)
 cat("Figure 2 written\n")
 # ---------- Figure 3: hazard ratios (A) and ratio of hazard ratios (B) ----------
 labS <- c(age10="Age, per 10 years", male="Male sex", av_catmild="AVC, mild vs none", av_catmod="AVC, moderate vs none", av_catsev="AVC, severe vs none",
           ef_catlt40="LVEF <40% vs \u226550%", ef_cat40to49="LVEF 40\u201349% vs \u226550%", zE="E/e', per SD", zla="LA dimension, per SD", zivs="Septal thickness, per SD",
           zbmi="BMI, per SD", af="AF or flutter", eg30to60="eGFR 30\u201359 vs \u226560", eglt30="eGFR <30 vs \u226560", esrd="Dialysis dependence")
-th3 <- theme_classic(base_size=13, base_family="sans") + theme(axis.text=element_text(colour="black"), legend.position="bottom", strip.background=element_blank(),
-        strip.text=element_text(size=12), plot.title=element_text(face="bold", size=17, hjust=0), plot.title.position="plot", legend.text=element_text(size=12))
-m <- r1$main; d3 <- m[m$domain=="D3" & m$term %in% names(labS),]; d3$term <- factor(d3$term, levels=rev(names(labS)))
+th_forest <- th_base + theme(axis.line.y=element_blank(), axis.ticks.y=element_blank(), axis.text.y=element_text(size=FS["annot"], colour="black"), axis.text.x=element_text(size=FS["tick"]),
+                             panel.spacing.x=unit(0.3,"cm"), legend.key.width=unit(0.5,"cm"), legend.spacing.x=unit(0.3,"cm"))
+m <- r1$main; d3 <- m[m$domain=="D3" & m$term %in% names(labS),]; d3$y <- as.numeric(factor(d3$term, levels=rev(names(labS))))
 d3$stratum <- factor(d3$stratum, levels=c("onset","progression"), labels=c("Onset: no reported calcification at index","Progression: mild calcification at index"))
-d3$def <- factor(d3$def, levels=c("first","confirmed"), labels=c("First-observed","Confirmed"))
-gA <- ggplot(d3, aes(x=hr, y=term, shape=def, colour=def)) + geom_vline(xintercept=1, linetype="dashed", colour="grey50") +
-  geom_errorbar(aes(xmin=lo, xmax=hi), width=0, position=position_dodge(width=0.6), linewidth=0.6, orientation="y") + geom_point(position=position_dodge(width=0.6), size=2.6, fill="white") +
-  facet_wrap(~stratum) + scale_x_log10(breaks=c(0.25,0.5,1,2,4,8,16), labels=c("0.25","0.5","1","2","4","8","16")) + scale_y_discrete(labels=function(x) labS[x]) +
-  scale_shape_manual(values=c(16,21), name=NULL) + scale_colour_manual(values=c("#0072B2","#D55E00"), name=NULL) + labs(x="Hazard ratio (95% CI)", y=NULL, title="A") + th3
+d3$def <- factor(d3$def, levels=c("first","confirmed"), labels=c("First-observed","Confirmed")); d3$yy <- d3$y + ifelse(d3$def=="First-observed", 0.17, -0.17)   # first-observed drawn above confirmed
+gA <- ggplot(d3, aes(x=hr, y=yy, colour=def, shape=def, fill=def)) + geom_vline(xintercept=1, linetype="42", colour="grey55", linewidth=0.35) +
+  geom_errorbar(aes(xmin=lo, xmax=hi), width=0, linewidth=0.45, orientation="y", lineend="round") + geom_point(size=1.9, stroke=0.5) +
+  facet_wrap(~stratum) + scale_x_log10(breaks=c(0.25,0.5,1,2,4,8,16), labels=c("0.25","0.5","1","2","4","8","16"), limits=c(0.18,30)) +
+  scale_y_continuous(breaks=seq_along(labS), labels=rev(unname(labS)), expand=expansion(add=c(0.6,0.6))) +
+  scale_shape_manual(values=c(`First-observed`=16, Confirmed=21), name=NULL) + scale_colour_manual(values=c(`First-observed`="#0072B2", Confirmed="#D55E00"), name=NULL) + scale_fill_manual(values=c(`First-observed`="#0072B2", Confirmed="white"), name=NULL) +
+  labs(x="Hazard ratio (95% CI)", y=NULL, title="A") + th_forest
 it <- r1$interaction; it$term2 <- sub("^prog:","", sub(":prog$","", it$term))
 labB <- c(age10="Age, per 10 years", male="Male sex", av_lin="AVC, per grade", ef_catlt40="LVEF <40% vs \u226550%", ef_cat40to49="LVEF 40\u201349% vs \u226550%", zE="E/e', per SD",
           zla="LA dimension, per SD", zivs="Septal thickness, per SD", zbmi="BMI, per SD", af="AF or flutter", eg30to60="eGFR 30\u201359 vs \u226560", eglt30="eGFR <30 vs \u226560", esrd="Dialysis dependence")
-b <- it[it$def=="first" & it$term2 %in% names(labB),]; b$term2 <- factor(b$term2, levels=rev(names(labB))); b$sig <- ifelse(b$lo > 1 | b$hi < 1, "excludes 1", "includes 1")
-gB <- ggplot(b, aes(x=hr, y=term2, colour=sig)) + geom_vline(xintercept=1, linetype="dashed", colour="grey50") +
-  geom_errorbar(aes(xmin=lo, xmax=hi), width=0, linewidth=0.7, orientation="y") + geom_point(size=2.6) +
-  annotate("text", x=0.98, y=length(labB)+0.85, label="Weaker for progression", hjust=1, size=4.2, family="sans", fontface="italic", colour="grey40") +
-  annotate("text", x=1.02, y=length(labB)+0.85, label="Stronger for progression", hjust=0, size=4.2, family="sans", fontface="italic", colour="grey40") +
-  scale_x_log10(breaks=c(0.4,0.5,0.7,1,1.5,2), labels=c("0.4","0.5","0.7","1","1.5","2"), limits=c(0.3,2.1), oob=scales::oob_keep) + scale_y_discrete(labels=function(x) labB[x]) +
-  scale_colour_manual(values=c(`excludes 1`="#B2182B", `includes 1`="grey45"), guide="none") + coord_cartesian(clip="off", ylim=c(0.6, length(labB)+1.1)) +
-  labs(x="Ratio of hazard ratios, progression relative to onset (95% CI)", y=NULL, title="B") + th3
-g <- arrangeGrob(gA, gB, ncol=1, heights=c(1.15,1))
-save_fig(g, "Figure3_forest", 8, 10.5)
+b <- it[it$def=="first" & it$term2 %in% names(labB),]; b$y <- as.numeric(factor(b$term2, levels=rev(names(labB)))); b$sig <- ifelse(b$lo > 1 | b$hi < 1, "excludes 1", "includes 1")
+gB <- ggplot(b, aes(x=hr, y=y, colour=sig)) + geom_vline(xintercept=1, linetype="42", colour="grey55", linewidth=0.35) +
+  geom_errorbar(aes(xmin=lo, xmax=hi), width=0, linewidth=0.5, orientation="y", lineend="round") + geom_point(aes(fill=sig), shape=21, size=2.1, colour="white", stroke=0.4) +
+  annotate("text", x=0.985, y=length(labB)+0.85, label="Weaker for progression", hjust=1, size=pt(FS["annot"]), family="sans", fontface="italic", colour="grey38") +
+  annotate("text", x=1.015, y=length(labB)+0.85, label="Stronger for progression", hjust=0, size=pt(FS["annot"]), family="sans", fontface="italic", colour="grey38") +
+  scale_x_log10(breaks=c(0.4,0.5,0.7,1,1.5,2), labels=c("0.4","0.5","0.7","1","1.5","2"), limits=c(0.3,2.1), oob=scales::oob_keep) +
+  scale_y_continuous(breaks=seq_along(labB), labels=rev(unname(labB))) +
+  scale_colour_manual(values=c(`excludes 1`="#B2182B", `includes 1`="grey42"), guide="none") + scale_fill_manual(values=c(`excludes 1`="#B2182B", `includes 1`="grey42"), guide="none") +
+  coord_cartesian(clip="off", ylim=c(0.5, length(labB)+1.1)) + labs(x="Ratio of hazard ratios, progression relative to onset (95% CI)", y=NULL, title="B") + th_forest + theme(axis.title.x=element_text(margin=margin(t=6)))
+g <- arrangeGrob(gA, gB, ncol=1, heights=c(1.12,1))
+save_fig(g, "Figure3_forest", 7.1, 8.4)
 cat("Figure 3 written\n")
 # ---------- Figure 4: cumulative incidence of calcific mitral stenosis ----------
 th <- theme_classic(base_size=12, base_family="sans") + theme(axis.text=element_text(colour="black"), plot.title=element_text(face="bold", size=11), legend.position="bottom")

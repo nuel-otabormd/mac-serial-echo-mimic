@@ -30,8 +30,9 @@ are included in this repository, and `data/` and `outputs/` are ignored by git; 
 * Google Cloud SDK (`bq`; tested with BigQuery CLI 2.1.27), authenticated to an account with credentialed PhysioNet
   BigQuery access, and a Google Cloud project to bill the queries (about 8.5 GB scanned).
 * R 4.5 (tested with 4.5.2) with `survival` (3.8-3), `mice` (3.18.0), `cmprsk` (2.2-12), `msm` (1.8-2), `ggplot2` (4.0.0),
-  `gridExtra` (2.3), `ragg` (1.5.0) and `scales` (1.4.0). Figures use the Times typeface available on macOS; on other
-  systems install a Times-compatible font or edit the `base_family` arguments in `R/07_figures.R`.
+  `gridExtra` (2.3), `ragg` (1.5.0) and `scales` (1.4.0). Figures use the graphics device's default sans-serif family
+  (Helvetica on macOS, Arial or DejaVu Sans elsewhere), so no additional fonts are needed; the R scripts that write text switch to a UTF-8 locale
+  themselves, so they run correctly even from a shell that uses the C locale.
 
 ## How to run
 
