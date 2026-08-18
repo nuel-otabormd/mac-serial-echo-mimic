@@ -61,7 +61,7 @@
 "interv_surv_hr_mi",1.38639560197205,0.005
 "interv_cif_5y_pct",7.79636855058008,0.05
 "interv_dysfunction_same_episode",1237,0
-"cloglog_age_onset_first",1.44298390581133,0.005
+"cloglog_age_onset_first",1.4278852082925,0.005
 "landmark_age_onset_first",1.41587720756116,0.005
 "finegray_age_onset_first",1.34846025300417,0.005
 "source_adults",85286,0
@@ -70,3 +70,5 @@
 "hmm_minus2LL",225340.414757434,0.5
 "confirmed_def_modplus",3102,0
 "confirmed_def_interv",98,0
+"conftiming_age_onset",1.24083973456347,0.005
+"dxtiming_af_prior_onset_first",1.02583120362705,0.005

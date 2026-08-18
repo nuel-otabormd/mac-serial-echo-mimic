@@ -1,5 +1,6 @@
 # 03_models_main.R: co-primary models (piecewise-exponential on person-intervals split at the time-band cut points, patient-
-# clustered variances, pooled across imputations), complementary log-log companion (exact interval-censored likelihood),
+# clustered variances, pooled across imputations), complementary log-log companion on the unsplit intervals (exact
+# interval-censored likelihood, hazard constant within an interval), confirmed-event timing sensitivity,
 # Cox companion, imputation bridge, stratum interaction, stricter onset cohort, landmark at the second episode, complete-case
 # models, sensitivity excluding patients whose only rheumatic report came after index, visit-process (inverse-intensity) and
 # censoring weights with weight diagnostics, total versus direct associations, Fine and Gray pooled across imputations, and
@@ -24,7 +25,7 @@ derive_cov <- function(x){   # x: one imputed dataset (or the observed data) wit
   x$zE <- (x$E_sept-MU["E_sept"])/SD["E_sept"]; x$zla <- (x$la-MU["la"])/SD["la"]; x$zivs <- (x$ivs-MU["ivs"])/SD["ivs"]; x$zbmi <- (x$bmi-MU["bmi"])/SD["bmi"]
   x$zphos <- (x$phos_median-MU["phos"])/SD["phos"]; x$zca <- (x$ca_median-MU["ca"])/SD["ca"]; x$zalp <- (log(x$alp_median)-MU["alp"])/SD["alp"]
   x }
-FIXED <- c("pid","yr1","t_first","t_conf","t_last","t_last_study","t_death","first_status","n_ep","idx_inpt","rheum_post")
+FIXED <- c("pid","yr1","t_first","t_conf","t_last","t_last_study","t_death","first_status","n_ep","idx_inpt","rheum_post","dm_prior","htn_prior","cad_prior","af_prior","esrd_prior")   # *_prior: diagnosis codes only from admissions completed by time zero (sensitivity)
 covs_m <- function(m){ x <- complete(imp, m); x$pid <- dA$pid; x$sev1n <- dA$sev1; x$era_n <- x$era_n
   for (v in FIXED[-1]) x[[v]] <- dA[[v]]
   x <- derive_cov(x)
@@ -40,6 +41,17 @@ build_iv <- function(cov, stratum, def, from_rn=1, t_event_override=NULL){
   if (from_rn>1) { pp <- pp[pp$t > pp$t_prev,]; pp <- pp[is.na(pp$te) | pp$te > (t0[pp$pid]),] }      # landmark: follow-up starts at the landmark episode; events at or before it excluded (they define it)
   pp <- split_intervals(pp[,c("pid","t_prev","t","ev","sev_prev","inpt_prev")])
   merge(pp, cov, by="pid") }
+build_iv_unsplit <- function(cov, stratum, def){
+  # one row per observation interval, NOT split at the band cut points: with a complementary log-log link this is the exact
+  # likelihood for an event known only to lie within the interval, the hazard being taken as constant over each interval and
+  # indexed by the band in which the interval starts (splitting and keeping the event in the last segment would instead
+  # assert that the event fell after the last cut point crossed, which is not known)
+  ids <- cov$pid[cov$sev1n==stratum]; pp <- p[p$pid %in% ids & p$rn>1, c("pid","rn","t","t_prev","sev_prev","inpt_prev")]
+  te <- if (def=="first") cov$t_first else cov$t_conf; names(te) <- cov$pid
+  pp$te <- te[pp$pid]; pp$ev <- as.integer(!is.na(pp$te) & pp$t==pp$te)
+  pp$after <- ave(pp$ev, pp$pid, FUN=function(v) c(0, head(cumsum(v),-1))); pp <- pp[pp$after==0,]
+  pp$dt <- (pmax(pp$t, pp$t_prev+1)-pp$t_prev)/365.25; pp$band <- band_of(pp$t_prev/365.25)
+  merge(pp[,c("pid","t_prev","t","ev","dt","band","sev_prev","inpt_prev")], cov, by="pid") }
 fit_glm <- function(iv, form, wts=NULL, family=poisson()){
   f <- suppressWarnings(glm(as.formula(paste("ev ~ band + offset(log(dt)) +", form)), data=iv, family=family, weights=wts))
   stopifnot(nobs(f)==nrow(iv))                                            # no silent row loss: every fitted model's n is the n of its data
@@ -62,8 +74,9 @@ for (s in 0:1) for (def in c("first","confirmed")) {
     out <- pool_hr(fits, KEY); out$stratum <- lab_st(s); out$def <- def; out$domain <- dom; out$n_pt <- fits[[1]]$n_pt; out$n_iv <- fits[[1]]$n_iv; out$events <- fits[[1]]$events
     main[[length(main)+1]] <- out
     msg("PE %-11s %-9s %s: patients %d intervals %d events %d", lab_st(s), def, dom, out$n_pt[1], out$n_iv[1], out$events[1]) }
-  # complementary log-log companion: exact likelihood for an event known only to lie within the interval
-  fits <- lapply(ivs, function(x) fit_glm(x, D3, family=binomial(link="cloglog")))
+  # complementary log-log companion on the UNSPLIT observation intervals: exact likelihood for an event known only to lie
+  # within the interval (hazard constant over the interval, baseline indexed by the band at the interval start)
+  fits <- lapply(covs, function(cv) fit_glm(build_iv_unsplit(cv, s, def), D3, family=binomial(link="cloglog")))
   out <- pool_hr(fits, KEY); out$stratum <- lab_st(s); out$def <- def; out$n_pt <- fits[[1]]$n_pt; out$events <- fits[[1]]$events; clog[[length(clog)+1]] <- out
   # Cox companion (event at the qualifying date; death within the grace window a competing event, otherwise censoring at the last study), MI-pooled, D3
   cx <- lapply(covs, function(cv){ x <- cv[cv$sev1n==s,]; tp <- if (def=="first") x$t_first else x$t_conf; z <- mk(tp, x$t_death, x$t_last_study); x$tt <- z$tt; x$ev <- z$ev
@@ -114,6 +127,23 @@ rh <- list()
 for (s in 0:1) for (def in c("first","confirmed")) { fits <- lapply(covsX, function(cv) fit_glm(build_iv(cv, s, def), D3))
   out <- pool_hr(fits, KEY); out$stratum <- lab_st(s); out$def <- def; out$n_pt <- fits[[1]]$n_pt; out$events <- fits[[1]]$events; rh[[length(rh)+1]] <- out }
 res$rheum_excluded <- do.call(rbind, rh)
+# ---------- 4e. SENSITIVITY: confirmed event dated at the CONFIRMING echocardiogram (the second of the pair) rather than the first, PE D3, MI-pooled ----------
+ct <- list()
+for (s in 0:1) { fits <- lapply(covs, function(cv) fit_glm(build_iv(cv, s, "confirmed", t_event_override=dA$t_conf_next[match(cv$pid, dA$pid)]), D3))
+  out <- pool_hr(fits, KEY); out$stratum <- lab_st(s); out$def <- "confirmed, dated at the confirming echocardiogram"; out$n_pt <- fits[[1]]$n_pt; out$events <- fits[[1]]$events; ct[[length(ct)+1]] <- out
+  msg("CONFIRMED TIMING (event at confirming echo) %s: patients %d events %d", lab_st(s), out$n_pt[1], out$events[1]) }
+res$confirmed_timing <- do.call(rbind, ct)
+# ---------- 4f. SENSITIVITY: diagnosis codes only from admissions COMPLETED by time zero (MIMIC-IV codes are assigned per admission at
+# discharge and carry no date within the stay, so the main definition, admissions begun by time zero, can include conditions documented
+# later in an index admission). D3 with prior-only atrial fibrillation and dialysis dependence; D5 with prior-only coded diagnoses. ----------
+D3p <- sub("\\+ af \\+ eg \\+ esrd", "+ af_prior + eg + esrd_prior", D3); D5p <- paste(D3p, "+ dm_prior + htn_prior + cad_prior"); stopifnot(D3p != D3)
+KEYp <- c(KEY, "af_prior","esrd_prior","dm_prior","htn_prior","cad_prior")
+dxl <- list()
+for (s in 0:1) for (def in c("first","confirmed")) { ivs <- lapply(covs, function(cv) build_iv(cv, s, def))
+  fits <- lapply(ivs, function(x) fit_glm(x, D3p)); out <- pool_hr(fits, KEYp); out$stratum <- lab_st(s); out$def <- def; out$domain <- "D3 prior-only AF and dialysis"; out$n_pt <- fits[[1]]$n_pt; out$events <- fits[[1]]$events; dxl[[length(dxl)+1]] <- out
+  fits <- lapply(ivs, function(x) fit_glm(x[x$yr1==1,], D5p)); out <- pool_hr(fits, KEYp); out$stratum <- lab_st(s); out$def <- def; out$domain <- "D5 prior-only coded diagnoses"; out$n_pt <- fits[[1]]$n_pt; out$events <- fits[[1]]$events; dxl[[length(dxl)+1]] <- out
+  msg("DIAGNOSIS TIMING (completed admissions only) %s %s done", lab_st(s), def) }
+res$dx_timing <- do.call(rbind, dxl)
 # ---------- 5. SENSITIVITIES on PE D3, MI-pooled: visit-process inverse-intensity weights (IIW); inverse probability of censoring weights (IPCW) ----------
 qw <- function(w) c(min=min(w), p5=unname(quantile(w,.05)), p25=unname(quantile(w,.25)), median=median(w), p75=unname(quantile(w,.75)), p95=unname(quantile(w,.95)), max=max(w))
 sens <- list(); wdiag <- list()

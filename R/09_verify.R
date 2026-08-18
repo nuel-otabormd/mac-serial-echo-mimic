@@ -28,7 +28,8 @@ vals <- c(
   interv_hr_age_mi=sm$pooled$hr_mi[sm$pooled$term=="age10p"], interv_surv_hr_mi=unname(sm$surv_hr["hr"]), interv_cif_5y_pct=100*unname(r2$interv_cif$est[1,"5"]), interv_dysfunction_same_episode=iv$n_pheno_same_episode,
   cloglog_age_onset_first=r1$cloglog$hr[r1$cloglog$stratum=="onset"&r1$cloglog$def=="first"&r1$cloglog$term=="age10"], landmark_age_onset_first=r1$landmark$hr[r1$landmark$stratum=="onset"&r1$landmark$def=="first"&r1$landmark$term=="age10"], finegray_age_onset_first=r1$finegray$shr[r1$finegray$stratum=="onset"&r1$finegray$def=="first"&r1$finegray$term=="age10"],
   source_adults=unname(fl["source_adults"]), single_episode=unname(fl["single_episode"]), rheum_post_flagged=unname(fl["rheum_post_flagged"]), hmm_minus2LL=r2$hmm$minus2LL,
-  confirmed_def_modplus=unname(r2$interv_confirmed["n_modplus"]), confirmed_def_interv=unname(r2$interv_confirmed["n_interv"]))
+  confirmed_def_modplus=unname(r2$interv_confirmed["n_modplus"]), confirmed_def_interv=unname(r2$interv_confirmed["n_interv"]),
+  conftiming_age_onset=r1$confirmed_timing$hr[r1$confirmed_timing$stratum=="onset" & r1$confirmed_timing$term=="age10"], dxtiming_af_prior_onset_first=r1$dx_timing$hr[r1$dx_timing$stratum=="onset" & r1$dx_timing$def=="first" & r1$dx_timing$domain=="D3 prior-only AF and dialysis" & r1$dx_timing$term=="af_prior"])
 tol <- ifelse(grepl("^(cohort|excluded|eligible|events|stricter|hmm_n_pt|stenosis_atrisk|interv_(modplus|dysfunction|analysed|n|died|median)|confirmed_def|source_adults|single_episode|rheum_post)", names(vals)), 0,
               ifelse(grepl("minus2LL", names(vals)), 0.5,
               ifelse(grepl("pct$|rate|sojourn", names(vals)), 0.05, 0.005)))

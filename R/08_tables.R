@@ -1,7 +1,8 @@
-# 08_tables.R: main and supplementary tables as CSV files in outputs/tables/, built only from the results objects.
+# 08_tables.R: main and supplementary tables as CSV files in outputs/tables/, built from the results objects (plus five descriptive shares from the frame).
 # Formatting follows the manuscript: hazard ratios as "HR (lower–upper)", percentages as in the tables.
 source("R/00_common.R")
 r1 <- readRDS("outputs/results/results_part1.rds"); r2 <- readRDS("outputs/results/results_part2.rds"); sm <- readRDS("outputs/results/secondary_mi.rds")
+d <- readRDS("data/frame.rds")   # used only for the descriptive shares in the Table S11 note (diagnosis codes from admissions still open at time zero)
 TB <- "outputs/tables/"; dir.create(TB, showWarnings=FALSE, recursive=TRUE)
 f  <- function(h, l, u, d=2) sprintf(paste0("%.",d,"f (%.",d,"f–%.",d,"f)"), h, l, u)
 fp <- function(p) ifelse(p < 0.001, "<0.001", sprintf("%.3f", p))
@@ -114,7 +115,27 @@ for (st in c("onset","progression")) { body <- do.call(rbind, lapply(ord, functi
    wcsv(body, sprintf("tableS10%s_care_setting_%s.csv", ifelse(st=="onset","a","b"), st)) }
 wcsv(unique(ss[,c("setting","stratum","def","n_pt","events")]), "tableS10_counts.csv")
 # ---- new supplementary tables ----
-wcsv(four_col(r1$cloglog), "tableS11_cloglog_companion.csv"); wcsv(counts_of(r1$cloglog), "tableS11_counts.csv")                        # S11: exact interval-censored (complementary log-log) companion of the main model
+# S11: model and timing sensitivity analyses in one compact table (full machine-readable companions kept as separate CSVs)
+wcsv(four_col(r1$cloglog), "tableS11_cloglog_companion.csv"); wcsv(counts_of(r1$cloglog), "tableS11_cloglog_counts.csv")           # grouped-time complementary log-log on the unsplit intervals
+wcsv(r1$confirmed_timing, "tableS11_confirmed_timing_full.csv"); wcsv(r1$dx_timing, "tableS11_diagnosis_timing_full.csv")
+labp <- c(lab, af_prior="Atrial fibrillation or flutter", esrd_prior="Dialysis dependence", dm_prior="Diabetes", htn_prior="Hypertension", cad_prior="Coronary artery disease")
+cx <- r1$main[r1$main$domain=="D3_cox_companion",]; m3 <- r1$main[r1$main$domain=="D3",]; m5 <- r1$main[r1$main$domain=="D5",]; ct <- r1$confirmed_timing; dxp <- r1$dx_timing
+g2 <- function(df, st, de, tm) { z <- df[df$stratum==st & df$def==de & df$term==tm, ]; if (nrow(z)) f(z$hr,z$lo,z$hi) else "" }
+S11 <- do.call(rbind, lapply(c("onset","progression"), function(st) do.call(rbind, lapply(c("first","confirmed"), function(de) do.call(rbind, lapply(c(ord[1:15], "dm","htn","cad"), function(t) {
+  cod <- t %in% c("dm","htn","cad"); tp <- if (t %in% c("af","esrd","dm","htn","cad")) paste0(t,"_prior") else t
+  data.frame(cohort=st, definition=ifelse(de=="first","first-observed","confirmed"), characteristic=unname(lab[t]),
+             main_model=if (cod) g2(m5,st,de,t) else g2(m3,st,de,t), cloglog_unsplit=if (cod) "" else g2(r1$cloglog,st,de,t), cox=if (cod) "" else g2(cx,st,de,t),
+             confirmed_dated_at_confirming_echo=if (de=="confirmed" && !cod) g2(ct,st,"confirmed, dated at the confirming echocardiogram",t) else "",
+             diagnosis_codes_from_completed_admissions=g2(dxp[dxp$domain==ifelse(cod,"D5 prior-only coded diagnoses","D3 prior-only AF and dialysis"),],st,de,tp)) }))))))
+wcsv(S11, "tableS11_model_and_timing_sensitivity.csv")
+cnt <- function(df, st, de) { z <- unique(df[df$stratum==st & df$def==de, c("n_pt","events")]); if (nrow(z)) sprintf("%s patients, %d events", format(z$n_pt[1], big.mark=","), z$events[1]) else "" }
+writeLines(c(sprintf("Main model and companions fitted in the same patients: onset %s (first-observed), %s (confirmed); progression %s (first-observed), %s (confirmed).", cnt(m3,"onset","first"), cnt(m3,"onset","confirmed"), cnt(m3,"progression","first"), cnt(m3,"progression","confirmed")),
+             sprintf("Confirmed events dated at the confirming echocardiogram: onset %s; progression %s.", cnt(ct,"onset","confirmed, dated at the confirming echocardiogram"), cnt(ct,"progression","confirmed, dated at the confirming echocardiogram")),
+             sprintf("Diagnosis codes from completed admissions only, coded-diagnosis rows (patients with one year of prior contact): onset %s (first-observed), %s (confirmed); progression %s (first-observed), %s (confirmed).", cnt(dxp[dxp$domain=="D5 prior-only coded diagnoses",],"onset","first"), cnt(dxp[dxp$domain=="D5 prior-only coded diagnoses",],"onset","confirmed"), cnt(dxp[dxp$domain=="D5 prior-only coded diagnoses",],"progression","first"), cnt(dxp[dxp$domain=="D5 prior-only coded diagnoses",],"progression","confirmed")),
+             sprintf("Share of the main-definition flags that came only from an admission still open at time zero (whole cohort): diabetes %.0f%%, hypertension %.0f%%, coronary disease %.0f%%, atrial fibrillation %.0f%%, dialysis dependence %.0f%%; among patients with one year of prior contact: %.0f%%, %.0f%%, %.0f%%, %.0f%%, %.0f%%.",
+                     100*mean(d$dm_prior[d$dm==1]==0), 100*mean(d$htn_prior[d$htn==1]==0), 100*mean(d$cad_prior[d$cad==1]==0), 100*mean(d$af_prior[d$af==1]==0), 100*mean(d$esrd_prior[d$esrd==1]==0),
+                     100*mean(d$dm_prior[d$dm==1 & d$yr1==1]==0), 100*mean(d$htn_prior[d$htn==1 & d$yr1==1]==0), 100*mean(d$cad_prior[d$cad==1 & d$yr1==1]==0), 100*mean(d$af_prior[d$af==1 & d$yr1==1]==0), 100*mean(d$esrd_prior[d$esrd==1 & d$yr1==1]==0))),
+           paste0(TB, "tableS11_notes.txt"))
 wcsv(four_col(r1$complete_case), "tableS12_complete_case.csv"); wcsv(counts_of(r1$complete_case), "tableS12_counts.csv")                # S12: complete-case main model
 wcsv(four_col(r1$landmark), "tableS13a_landmark_second_episode.csv"); wcsv(counts_of(r1$landmark), "tableS13a_counts.csv")               # S13a: follow-up from the second episode
 wcsv(four_col(r1$rheum_excluded), "tableS13b_rheumatic_after_index_excluded.csv"); wcsv(counts_of(r1$rheum_excluded), "tableS13b_counts.csv") # S13b: rheumatic-after-index patients excluded

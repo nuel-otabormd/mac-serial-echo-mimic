@@ -95,7 +95,7 @@ lab AS (SELECT subject_id,
    MAX(IF(label="Alkaline Phosphatase",med,NULL)) alp_median, MAX(IF(label="Alkaline Phosphatase",lastv,NULL)) alp_last
    FROM lv GROUP BY 1),
 -- diagnoses at or before index, ICD-version restricted; code families verified against d_icd_diagnoses
-dxdt AS (SELECT d.subject_id, d.icd_code, d.icd_version, a.admittime FROM `physionet-data.mimiciv_3_1_hosp.diagnoses_icd` d JOIN `physionet-data.mimiciv_3_1_hosp.admissions` a USING(hadm_id) JOIN coh c2 ON c2.subject_id=d.subject_id),
+dxdt AS (SELECT d.subject_id, d.icd_code, d.icd_version, a.admittime, a.dischtime FROM `physionet-data.mimiciv_3_1_hosp.diagnoses_icd` d JOIN `physionet-data.mimiciv_3_1_hosp.admissions` a USING(hadm_id) JOIN coh c2 ON c2.subject_id=d.subject_id),
 cm AS (SELECT c.subject_id,
    MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^(Z992|N186)")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^(V4511|V4512|5856)")),1,0)) esrd_dx,
    MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^(E08|E09|E1[0-4])")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^(249|250)")),1,0)) dm,
@@ -103,6 +103,16 @@ cm AS (SELECT c.subject_id,
    MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^(I2[0-5]|Z951|Z955)")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^(41[0-4]|V4581|V4582)")),1,0)) cad,
    MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^I48")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^4273")),1,0)) af_icd
    FROM coh c LEFT JOIN dxdt x ON x.subject_id=c.subject_id AND x.admittime<=c.d1_end GROUP BY 1),
+-- MIMIC-IV diagnosis codes are assigned per admission at discharge and carry no date within the stay, so a code from an admission
+-- that was still open at time zero may describe a condition documented later in that stay: the main definition (cm) takes codes
+-- from admissions that BEGAN by the end of the index episode; the sensitivity definition (cmp) takes only admissions COMPLETED by then
+cmp AS (SELECT c.subject_id,
+   MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^(Z992|N186)")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^(V4511|V4512|5856)")),1,0)) esrd_dx_prior,
+   MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^(E08|E09|E1[0-4])")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^(249|250)")),1,0)) dm_prior,
+   MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^I1[0-6]")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^40[1-5]")),1,0)) htn_prior,
+   MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^(I2[0-5]|Z951|Z955)")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^(41[0-4]|V4581|V4582)")),1,0)) cad_prior,
+   MAX(IF((x.icd_version=10 AND REGEXP_CONTAINS(x.icd_code,r"^I48")) OR (x.icd_version=9 AND REGEXP_CONTAINS(x.icd_code,r"^4273")),1,0)) af_icd_prior
+   FROM coh c LEFT JOIN dxdt x ON x.subject_id=c.subject_id AND x.dischtime<=c.d1_end GROUP BY 1),
 -- dialysis from ICU derived table
 ihd AS (SELECT DISTINCT c.subject_id FROM coh c JOIN `physionet-data.mimiciv_3_1_icu.icustays` ie USING(subject_id) JOIN `physionet-data.mimiciv_3_1_derived.rrt` r USING(stay_id) WHERE r.dialysis_active=1 AND r.dialysis_type IN ("IHD","Peritoneal") AND DATETIME(r.charttime)<=c.d1_end),
 crrt AS (SELECT DISTINCT c.subject_id FROM coh c JOIN `physionet-data.mimiciv_3_1_icu.icustays` ie USING(subject_id) JOIN `physionet-data.mimiciv_3_1_derived.rrt` r USING(stay_id) WHERE r.dialysis_type IN ("CRRT","CVVHDF","CVVHD","CVVH","SCUF") AND DATETIME(r.charttime)<=c.d1_end),
@@ -156,8 +166,10 @@ SELECT TO_HEX(MD5(CAST(c.subject_id AS STRING))) pid, c.sev1, c.n_ep, c.age0, c.
   IF(cm.esrd_dx=1 OR c.subject_id IN (SELECT subject_id FROM ihd),1,0) esrd,
   IF(c.subject_id IN (SELECT subject_id FROM crrt) AND cm.esrd_dx=0 AND c.subject_id NOT IN (SELECT subject_id FROM ihd),1,0) aki_rrt,
   cm.dm, cm.htn, cm.cad, cm.af_icd, IFNULL(ea.ecg30,0) ecg30, IFNULL(ea.af_ecg,0) af_ecg, IF(cm.af_icd=1 OR IFNULL(ea.af_ecg,0)=1,1,0) af,
+  IFNULL(cmp.dm_prior,0) dm_prior, IFNULL(cmp.htn_prior,0) htn_prior, IFNULL(cmp.cad_prior,0) cad_prior, IF(IFNULL(cmp.af_icd_prior,0)=1 OR IFNULL(ea.af_ecg,0)=1,1,0) af_prior,
+  IF(IFNULL(cmp.esrd_dx_prior,0)=1 OR c.subject_id IN (SELECT subject_id FROM ihd),1,0) esrd_prior,   /* sensitivity: codes only from admissions completed by time zero (dialysis records and ECGs carry exact times and are unchanged) */
   GREATEST(DATE_DIFF(DATE(ma.t_mod),DATE(c.d1_end),DAY),0) t_modany, GREATEST(DATE_DIFF(DATE(ph.t_pheno),DATE(c.d1_end),DAY),0) t_pheno, ph.pheno_type, ph.pheno_same_episode, DATE_DIFF(DATE(ph.t_pheno_after),DATE(c.d1_end),DAY) t_pheno_after, GREATEST(DATE_DIFF(DATE(ph.t_pheno_conf),DATE(c.d1_end),DAY),0) t_pheno_conf, ph.pheno_type_conf, GREATEST(DATE_DIFF(DATE(ma.t_conf_start),DATE(c.d1_end),DAY),0) t_conf_start,
   DATE_DIFF(fm.mvdate,DATE(c.d1_end),DAY) t_interv, fm.modality interv_modality, fm.isolated interv_isolated,
   k.n_any, k.n_adult_any, k.n_single_episode, k.n_s0, k.n_adult, k.n_pros, k.n_rheum, k.n_rheum_post
-FROM coh c CROSS JOIN counts k LEFT JOIN ev e USING(subject_id) LEFT JOIN echo ec ON ec.measurement_id=c.mid LEFT JOIN dys dy USING(subject_id) LEFT JOIN lab l USING(subject_id) LEFT JOIN cm USING(subject_id)
+FROM coh c CROSS JOIN counts k LEFT JOIN ev e USING(subject_id) LEFT JOIN echo ec ON ec.measurement_id=c.mid LEFT JOIN dys dy USING(subject_id) LEFT JOIN lab l USING(subject_id) LEFT JOIN cm USING(subject_id) LEFT JOIN cmp USING(subject_id)
  LEFT JOIN ecgaf ea USING(subject_id) LEFT JOIN prior p USING(subject_id) LEFT JOIN setting st USING(subject_id) LEFT JOIN idxadm ia USING(subject_id) LEFT JOIN modany ma USING(subject_id) LEFT JOIN pheno ph USING(subject_id) LEFT JOIN firstmv fm USING(subject_id)

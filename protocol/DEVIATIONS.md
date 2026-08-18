@@ -2,9 +2,9 @@
 
 `MAC_Study_Protocol_v2.4.md` is reproduced as written on 16 August 2026 and has not been edited. It was developed
 iteratively against the data between 12 and 16 August 2026, and that specification work produced preliminary hazard ratios
-under superseded specifications, as the protocol itself discloses. The analysis in this repository (versions 1.1.0 and 1.1.1, 17 August
+under superseded specifications, as the protocol itself discloses. The analysis in this repository (versions 1.1.0 to 1.1.2, 17 August
 2026) differs from the plan, and from the first archived implementation (version 1.0.x, same day), in the respects below.
-Items 1 to 6 are clarifications; items 7 to 17 are changes made after an independent methodological review of the first
+Items 1 to 6 are clarifications; items 7 to 18 are changes made after an independent methodological review of the first
 implementation, before submission. None changes an outcome definition, an exposure or a reporting rule; several change the
 timing conventions and the estimator's implementation, and every reported number was regenerated after them.
 
@@ -47,9 +47,12 @@ timing conventions and the estimator's implementation, and every reported number
    counted from the echocardiogram that confirms the pair; dysfunction already documented on the qualifying episode is
    reported separately from dysfunction first documented later.
 9. **Estimator implementation.** Person-intervals are split at the time-band cut points (0.5, 1, 2, 4, 7 years) so that
-   the piecewise baseline hazard is what the plan describes; standard errors are patient-clustered; a complementary log-log
-   model (the exact interval-censored likelihood) is reported as a companion (Supplementary Table S11); model n is taken
-   from the fitted data (the mineral-marker models are fitted in patients with all three markers measured).
+   the piecewise baseline hazard is what the plan describes; standard errors are patient-clustered; a grouped-time
+   complementary log-log model fitted to the unsplit intervals between examinations is reported as a companion (Supplementary
+   Table S11; version 1.1.0 fitted it to the split intervals with the event kept in the last segment, which is not the
+   interval-censored likelihood when an interval crosses a band cut point, as about 60% of event intervals do; corrected in
+   version 1.1.2); model n is taken from the fitted data (the mineral-marker models are fitted in patients with all three
+   markers measured).
 10. **Death.** Observation ends at the last echocardiogram; in analyses that need a death time, death within 30 days after
     the last echocardiogram is a competing event and later death is censoring at the last echocardiogram, because MIMIC-IV
     records deaths for one year after the last hospital contact. The rule, previously undisclosed, is now stated and varied
@@ -77,3 +80,10 @@ timing conventions and the estimator's implementation, and every reported number
     second random seed to show the simulation error of the pooled estimates (Supplementary Table S17; version 1.1.1).
 17. **Source population.** The cohort flow now begins with all adults who had a qualifying study, showing those with a
     single episode; the estimand is stated as conditional on serial echocardiography.
+18. **Event and diagnosis timing (version 1.1.2).** The confirmed event, dated at the first study of the pair in the plan and
+    the main analysis, is also analysed dated at the confirming echocardiogram; the multiply imputed confirmation status is
+    described as addressing missing confirmation under a missing-at-random assumption, not as removing selection.
+    Coded diagnoses were taken from admissions begun by the end of the index episode, but MIMIC-IV assigns codes per admission
+    at discharge without a date within the stay, so the models were repeated with codes only from admissions completed by time
+    zero (electrocardiogram and dialysis records unchanged). Both are in Supplementary Table S11, which now holds the model and
+    timing companions in one table.
