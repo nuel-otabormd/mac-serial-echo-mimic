@@ -16,6 +16,9 @@ identifiers:
     value: 10.5281/zenodo.21983972
     description: "Concept DOI, resolves to the latest archived version"
   - type: doi
+    value: 10.5281/zenodo.21996181
+    description: "Version 1.2.1 (display terminology aligned with the manuscript)"
+  - type: doi
     value: 10.5281/zenodo.21995113
     description: "Version 1.2.0 (episode-level valve assessment; vital-status horizon; aggregate tables released)"
   - type: doi
