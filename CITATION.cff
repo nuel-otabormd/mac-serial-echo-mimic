@@ -16,8 +16,11 @@ identifiers:
     value: 10.5281/zenodo.21983972
     description: "Concept DOI, resolves to the latest archived version"
   - type: doi
+    value: 10.5281/zenodo.21987596
+    description: "Version 1.1.0, the manuscript submission version (reanalysis after independent methodological review)"
+  - type: doi
     value: 10.5281/zenodo.21984213
-    description: "Version 1.0.1, the manuscript submission version"
+    description: "Version 1.0.1, first archived implementation (superseded)"
   - type: doi
     value: 10.5281/zenodo.21983973
     description: "Version 1.0.0"
