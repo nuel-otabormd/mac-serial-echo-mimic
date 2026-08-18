@@ -98,4 +98,5 @@ timing conventions and the estimator's implementation, and every reported number
     records deaths, or at the last echocardiogram if later (previously one year after the last echocardiogram). Missingness
     of the imputed covariates is stated. The supplement shows the principal correlates and the complete tables ship as
     machine-readable files (`release_tables/`).
-
+    The manuscript now calls the confirmed endpoint "reproduced" and the first-report dispositions "reproduced", "lower grade
+    next" and "not re-examined"; the code and CSV files keep the internal names (confirmed, refuted, unconfirmable).

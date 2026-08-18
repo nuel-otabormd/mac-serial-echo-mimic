@@ -110,8 +110,12 @@ outputs/    results, figures, tables and logs (ignored by git)
 ## Aggregate result tables
 
 `release_tables/` holds a copy of `outputs/tables/` from the archived run (aggregate hazard ratios, counts and notes only,
-no patient-level data). The supplement shows the principal correlates; the complete tables, including the full stage-wise
-models (S6a to S6d) and the full companion tables behind Supplementary Table S11, are here as machine-readable files.
+no patient-level data). The supplement (twelve tables) shows the principal correlates; the complete tables are here as
+machine-readable files. File names carry the analysis identifiers, which map to the supplement as follows: tableS1 = S1;
+tableS2 + tableS15/S15b = S2A to S2C; tableS3 + tableS4 = S3; tableS5 = S4; tableS6a to S6d (full stage-wise models) = S5;
+tableS7a to S7c = S6; tableS8 = S7; tableS9 = S8; tableS10a/b = S9; tableS12 + tableS13a/b = S10; tableS11 (+ tableS17
+imputation stability) = S11; tableS14a/b + tableS16 = S12. In the CSV files "confirmed" is the internal name of the
+endpoint the manuscript calls "reproduced" (first moderate or severe report also moderate or severe on the next episode).
 
 ## Sharing the code
 

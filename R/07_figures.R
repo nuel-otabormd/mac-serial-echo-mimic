@@ -31,10 +31,10 @@ draw_flow <- function(){ grid.newpage(); pushViewport(viewport(width=0.94, heigh
   box(bx,0.665,0.40,0.075, sprintf("Analysis cohort\nn = %s", format(fl["analysed"],big.mark=",")))
   seg(bx,0.6275,bx,0.585,arr=FALSE); seg(0.14,0.585,0.78,0.585,arr=FALSE)
   for (x in c(0.14,0.46,0.78)) seg(x,0.585,x,0.535)
-  box(0.14,0.44,0.27,0.18, sprintf("No reported calcification at index\n(onset cohort)\nn = %s\n\nFirst-observed events %s\nConfirmed events %s", format(fl["blank"],big.mark=","), ev("onset","first"), ev("onset","confirmed")), fs=9)
-  box(0.46,0.44,0.27,0.18, sprintf("Mild calcification at index\n(progression cohort)\nn = %s\n\nFirst-observed events %s\nConfirmed events %s", format(fl["mild"],big.mark=","), ev("progression","first"), ev("progression","confirmed")), fs=9)
+  box(0.14,0.44,0.27,0.18, sprintf("No reported calcification at index\n(onset cohort)\nn = %s\n\nFirst-observed events %s\nReproduced events %s", format(fl["blank"],big.mark=","), ev("onset","first"), ev("onset","confirmed")), fs=9)
+  box(0.46,0.44,0.27,0.18, sprintf("Mild calcification at index\n(progression cohort)\nn = %s\n\nFirst-observed events %s\nReproduced events %s", format(fl["mild"],big.mark=","), ev("progression","first"), ev("progression","confirmed")), fs=9)
   box(0.78,0.44,0.34,0.18, sprintf("Moderate or severe calcification at index\n(advanced disease)\nn = %s\n\nDescribed together with patients reaching\nmoderate or severe during follow-up", format(fl["modsev"],big.mark=",")), fs=9)
-  seg(0.14,0.35,0.14,0.30); box(0.14,0.21,0.27,0.17, sprintf("Stricter onset cohort:\nfirst two episodes both blank,\nfollowed from the second\nn = %s\nevents: %s first-observed,\n%s confirmed", format(cb$n_pt[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="confirmed"],big.mark=",")), fill="#F2F2F2", fs=9)
+  seg(0.14,0.35,0.14,0.30); box(0.14,0.21,0.27,0.17, sprintf("Stricter onset cohort:\nfirst two episodes both blank,\nfollowed from the second\nn = %s\nevents: %s first-observed,\n%s reproduced", format(cb$n_pt[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="first"],big.mark=","), format(cb$events[cb$def=="confirmed"],big.mark=",")), fill="#F2F2F2", fs=9)
   popViewport() }
 ragg::agg_png(paste0(OUT,"Figure1_flow.png"), width=7.5, height=7.5, units="in", res=600, background="white"); draw_flow(); invisible(dev.off())
 ragg::agg_tiff(paste0(OUT,"Figure1_flow.tiff"), width=7.5, height=7.5, units="in", res=600, background="white", compression="lzw"); draw_flow(); invisible(dev.off())
@@ -60,10 +60,10 @@ gA <- ggplot(em, aes(reported, true, fill=p)) + geom_tile(colour=NA) +
   theme(axis.line=element_blank(), axis.ticks=element_blank(), axis.text=element_text(size=FS["tick"], colour="black"), axis.title.x=element_text(margin=margin(t=6)), axis.title.y=element_text(margin=margin(r=8)))
 fa <- r2$first_read_fate; fa <- fa[fa$group=="age_cat",]; fa$level <- factor(fa$level, levels=c("<65","65-74","75-84","85+")); fa$xlab <- paste0(as.character(fa$level), "\nn = ", fa$n)
 fa$stratum <- factor(fa$stratum, levels=c("onset","progression"), labels=c("No reported calcification at index","Mild calcification at index"))
-fl2 <- rbind(data.frame(fa[,c("stratum","level","xlab")], fate="Confirmed", v=fa$confirmed), data.frame(fa[,c("stratum","level","xlab")], fate="Refuted", v=fa$refuted), data.frame(fa[,c("stratum","level","xlab")], fate="Never re-examined", v=fa$last_echo))
-fl2$fate <- factor(fl2$fate, levels=c("Never re-examined","Refuted","Confirmed")); fl2$xlab <- factor(fl2$xlab, levels=unique(fl2$xlab[order(fl2$stratum, fl2$level)]))
+fl2 <- rbind(data.frame(fa[,c("stratum","level","xlab")], fate="Reproduced", v=fa$confirmed), data.frame(fa[,c("stratum","level","xlab")], fate="Lower grade next", v=fa$refuted), data.frame(fa[,c("stratum","level","xlab")], fate="Not re-examined", v=fa$last_echo))
+fl2$fate <- factor(fl2$fate, levels=c("Not re-examined","Lower grade next","Reproduced")); fl2$xlab <- factor(fl2$xlab, levels=unique(fl2$xlab[order(fl2$stratum, fl2$level)]))
 gB <- ggplot(fl2, aes(xlab, v, fill=fate)) + geom_col(width=0.68) + facet_wrap(~stratum, scales="free_x") +
-  scale_fill_manual(values=c(`Never re-examined`="#D9D9D9", Refuted="#E69F00", Confirmed="#0072B2"), breaks=c("Confirmed","Refuted","Never re-examined"), name=NULL) +
+  scale_fill_manual(values=c(`Not re-examined`="#D9D9D9", `Lower grade next`="#E69F00", Reproduced="#0072B2"), breaks=c("Reproduced","Lower grade next","Not re-examined"), name=NULL) +
   scale_y_continuous(labels=function(x) paste0(100*x,"%"), expand=c(0,0), limits=c(0,1), breaks=c(0,0.25,0.5,0.75,1)) +
   labs(x="Age at the qualifying echocardiogram, years", y="Share of first moderate or\nsevere reads", title="B") + th_base +
   theme(panel.spacing.x=unit(0.35,"cm"), axis.title.x=element_text(margin=margin(t=4)), axis.title.y=element_text(margin=margin(r=6)), legend.spacing.x=unit(0.25,"cm"), legend.box.margin=margin(2,0,0,0))
@@ -78,12 +78,12 @@ th_forest <- th_base + theme(axis.line.y=element_blank(), axis.ticks.y=element_b
                              panel.spacing.x=unit(0.3,"cm"), legend.key.width=unit(0.5,"cm"), legend.spacing.x=unit(0.3,"cm"))
 m <- r1$main; d3 <- m[m$domain=="D3" & m$term %in% names(labS),]; d3$y <- as.numeric(factor(d3$term, levels=rev(names(labS))))
 d3$stratum <- factor(d3$stratum, levels=c("onset","progression"), labels=c("Onset: no reported calcification at index","Progression: mild calcification at index"))
-d3$def <- factor(d3$def, levels=c("first","confirmed"), labels=c("First-observed","Confirmed")); d3$yy <- d3$y + ifelse(d3$def=="First-observed", 0.17, -0.17)   # first-observed drawn above confirmed
+d3$def <- factor(d3$def, levels=c("first","confirmed"), labels=c("First-observed","Reproduced")); d3$yy <- d3$y + ifelse(d3$def=="First-observed", 0.17, -0.17)   # first-observed drawn above confirmed
 gA <- ggplot(d3, aes(x=hr, y=yy, colour=def, shape=def, fill=def)) + geom_vline(xintercept=1, linetype="42", colour="grey55", linewidth=0.35) +
   geom_errorbar(aes(xmin=lo, xmax=hi), width=0, linewidth=0.45, orientation="y", lineend="round") + geom_point(size=1.9, stroke=0.5) +
   facet_wrap(~stratum) + scale_x_log10(breaks=c(0.25,0.5,1,2,4,8,16), labels=c("0.25","0.5","1","2","4","8","16"), limits=c(0.18,30)) +
   scale_y_continuous(breaks=seq_along(labS), labels=rev(unname(labS)), expand=expansion(add=c(0.6,0.6))) +
-  scale_shape_manual(values=c(`First-observed`=16, Confirmed=21), name=NULL) + scale_colour_manual(values=c(`First-observed`="#0072B2", Confirmed="#D55E00"), name=NULL) + scale_fill_manual(values=c(`First-observed`="#0072B2", Confirmed="white"), name=NULL) +
+  scale_shape_manual(values=c(`First-observed`=16, Reproduced=21), name=NULL) + scale_colour_manual(values=c(`First-observed`="#0072B2", Reproduced="#D55E00"), name=NULL) + scale_fill_manual(values=c(`First-observed`="#0072B2", Reproduced="white"), name=NULL) +
   labs(x="Hazard ratio (95% CI)", y=NULL, title="A") + th_forest
 it <- r1$interaction; it$term2 <- sub("^prog:","", sub(":prog$","", it$term))
 labB <- c(age10="Age, per 10 years", male="Male sex", av_lin="AVC, per grade", ef_catlt40="LVEF <40% vs \u226550%", ef_cat40to49="LVEF 40\u201349% vs \u226550%", zE="E/e', per SD",

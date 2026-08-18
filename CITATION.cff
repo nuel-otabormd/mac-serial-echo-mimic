@@ -1,4 +1,4 @@
-cff-version: 1.2.0
+cff-version: 1.2.1
 message: "If you use this code, please cite the accompanying article."
 title: "Analysis code: Onset, progression and consequences of mitral annular calcification on serial clinical echocardiography (MIMIC-IV)"
 type: software
@@ -6,7 +6,7 @@ authors:
   - family-names: Otabor
     given-names: Emmanuel
     orcid: "https://orcid.org/0009-0006-7902-6909"
-version: 1.2.0
+version: 1.2.1
 date-released: 2026-08-18
 license: MIT
 repository-code: "https://github.com/nuel-otabormd/mac-serial-echo-mimic"
