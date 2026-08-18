@@ -16,6 +16,9 @@ identifiers:
     value: 10.5281/zenodo.21983972
     description: "Concept DOI, resolves to the latest archived version"
   - type: doi
+    value: 10.5281/zenodo.21987960
+    description: "Version 1.1.2 (unsplit complementary log-log companion; event-timing and diagnosis-timing sensitivities)"
+  - type: doi
     value: 10.5281/zenodo.21987685
     description: "Version 1.1.1 (imputation-stability check; archive-consistent citation metadata)"
   - type: doi
