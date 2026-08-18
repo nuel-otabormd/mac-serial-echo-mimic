@@ -2,9 +2,9 @@
 
 `MAC_Study_Protocol_v2.4.md` is reproduced as written on 16 August 2026 and has not been edited. It was developed
 iteratively against the data between 12 and 16 August 2026, and that specification work produced preliminary hazard ratios
-under superseded specifications, as the protocol itself discloses. The analysis in this repository (versions 1.1.0 to 1.1.2, 17 August
+under superseded specifications, as the protocol itself discloses. The analysis in this repository (versions 1.1.0 to 1.2.0, 17 to 18 August
 2026) differs from the plan, and from the first archived implementation (version 1.0.x, same day), in the respects below.
-Items 1 to 6 are clarifications; items 7 to 18 are changes made after an independent methodological review of the first
+Items 1 to 6 are clarifications; items 7 to 19 are changes made after an independent methodological review of the first
 implementation, before submission. None changes an outcome definition, an exposure or a reporting rule; several change the
 timing conventions and the estimator's implementation, and every reported number was regenerated after them.
 
@@ -55,7 +55,7 @@ timing conventions and the estimator's implementation, and every reported number
    markers measured).
 10. **Death.** Observation ends at the last echocardiogram; in analyses that need a death time, death within 30 days after
     the last echocardiogram is a competing event and later death is censoring at the last echocardiogram, because MIMIC-IV
-    records deaths for one year after the last hospital contact. The rule, previously undisclosed, is now stated and varied
+    records deaths for one year after the last hospital discharge. The rule, previously undisclosed, is now stated and varied
     (0, 90, 365 days; Supplementary Table S14). Fine and Gray models are pooled across the twenty imputed datasets.
 11. **Baseline covariates strictly at or before index.** Atrial fibrillation from the electrocardiogram now uses ECGs from
     30 days before index to the end of the index episode (previously 30 days either side of index). "Prior contact of one
@@ -87,3 +87,15 @@ timing conventions and the estimator's implementation, and every reported number
     at discharge without a date within the stay, so the models were repeated with codes only from admissions completed by time
     zero (electrocardiogram and dialysis records unchanged). Both are in Supplementary Table S11, which now holds the model and
     timing companions in one table.
+19. **Episode-level valve assessment and vital-status horizon (version 1.2.0).** For the secondary outcomes, baseline mitral
+    stenosis or regurgitation is now judged on every study of the index episode, not only its defining study, and mitral
+    dysfunction on any study of the qualifying (first moderate or severe) episode counts as already present, whether that
+    study preceded or followed the episode's defining study; both follow the episode-level logic used elsewhere. The confirmed
+    definition is stated precisely: the first moderate or severe report that was reproduced on the next episode (a first
+    report followed by a lower grade did not qualify but a later reproduced report did; 214 of 250 and 464 of 528 confirmed
+    events were the first report itself), with a sensitivity analysis restricted to the first report. Survivors in the
+    descriptive mortality summaries are censored one year after the last hospital discharge, the period for which MIMIC-IV
+    records deaths, or at the last echocardiogram if later (previously one year after the last echocardiogram). Missingness
+    of the imputed covariates is stated. The supplement shows the principal correlates and the complete tables ship as
+    machine-readable files (`release_tables/`).
+

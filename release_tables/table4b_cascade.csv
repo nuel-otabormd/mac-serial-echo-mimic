@@ -1,0 +1,13 @@
+"step","n","denominator","pct"
+"Patients with moderate or severe MAC at index or follow-up",4969,NA,NA
+"Moderate or greater mitral dysfunction at or after the qualifying read",2164,4969,43.6
+"  Already documented at the qualifying episode",1262,2164,58.3
+"  First documented on a later study",902,2164,41.7
+"  Regurgitation-led",1405,2164,64.9
+"  Stenosis-led or raised gradient",759,2164,35.1
+"Without a prior mitral procedure",2117,2164,97.8
+"Mitral intervention after the dysfunction was documented",133,2117,6.3
+"  After stenosis-led dysfunction",50,731,6.8
+"  After regurgitation-led dysfunction",83,1386,6
+"  Isolated (no concomitant bypass or aortic valve surgery)",80,133,60.2
+"Died after the echocardiogram showing dysfunction (within the ascertainment window)",1100,2117,52

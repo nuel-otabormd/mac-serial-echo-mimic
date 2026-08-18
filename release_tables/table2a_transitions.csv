@@ -1,0 +1,5 @@
+"grade","consecutive_pairs","next_none","next_mild","next_moderate","next_severe"
+"None (blank)",53004,"80.9","17.0","1.9","0.2"
+"Mild",17811,"43.9","42.1","13.1","0.9"
+"Moderate",6458,"11.5","23.9","53.9","10.7"
+"Severe",1313,"7.1","4.2","34.7","54.0"

@@ -1,0 +1,4 @@
+"baseline_grade","at_risk","stenosis_events","person_years","rate_per_100py","deaths_before_stenosis","cumulative_incidence_2y_pct","cumulative_incidence_5y_pct"
+"None reported",21559,396,92054,"0.43",2077,"0.8 (0.7–0.9)","1.7 (1.5–2.0)"
+"Mild",6918,253,27308,"0.93",964,"1.2 (1.0–1.5)","3.1 (2.5–3.6)"
+"Moderate or severe",2039,334,5851,"5.71",298,"10.5 (9.0–12.1)","19.0 (16.7–21.3)"

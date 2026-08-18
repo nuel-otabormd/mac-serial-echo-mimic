@@ -1,0 +1,21 @@
+"definition","stratum","def","n_pt","events"
+"lowest creatinine (main)","onset","first",16564,766
+"median creatinine","onset","first",16564,766
+"most recent creatinine","onset","first",16564,766
+"lowest creatinine (main)","onset","confirmed",16564,178
+"median creatinine","onset","confirmed",16564,178
+"most recent creatinine","onset","confirmed",16564,178
+"lowest creatinine (main)","progression","first",5499,1225
+"median creatinine","progression","first",5499,1225
+"most recent creatinine","progression","first",5499,1225
+"lowest creatinine (main)","progression","confirmed",5499,377
+"median creatinine","progression","confirmed",5499,377
+"most recent creatinine","progression","confirmed",5499,377
+"median of the year (main)","onset","first",9914,423
+"most recent value","onset","first",9914,423
+"median of the year (main)","onset","confirmed",9914,104
+"most recent value","onset","confirmed",9914,104
+"median of the year (main)","progression","first",3249,709
+"most recent value","progression","first",3249,709
+"median of the year (main)","progression","confirmed",3249,209
+"most recent value","progression","confirmed",3249,209

@@ -5,9 +5,9 @@
 # echocardiogram), cumulative incidence of intervention with death as a competing event, and mortality at fixed horizons.
 suppressPackageStartupMessages({library(survival); library(msm); library(cmprsk)}); source("R/00_common.R")
 d <- readRDS("data/frame.rds"); p <- read.csv("data/panel.csv"); p <- p[order(p$pid,p$rn),]; p <- p[p$pid %in% d$pid,]; res2 <- list()
-# vital status is known for up to one year after the last hospital contact in MIMIC-IV: survivors are censored one year after
-# their last echocardiogram in the descriptive survival summaries (deaths recorded later than that are censored at that point)
-d$t_end_vital <- ifelse(!is.na(d$t_death) & d$t_death <= d$t_last_study + 365, d$t_death, d$t_last_study + 365); d$dead_vital <- as.integer(!is.na(d$t_death) & d$t_death <= d$t_last_study + 365)
+# vital status: MIMIC-IV records deaths up to one year after the last hospital discharge; survivors are censored at that horizon
+# (or at the last echocardiogram if later) in the descriptive survival summaries (vital_horizon in 00_common.R)
+d$t_vs_end <- vital_horizon(d$t_last_disch, d$t_last_study); d$dead_vital <- as.integer(!is.na(d$t_death) & d$t_death <= d$t_vs_end); d$t_end_vital <- ifelse(d$dead_vital==1, d$t_death, d$t_vs_end)
 # ---------- TABLE 1 source ----------
 d$egfr_base_cat <- cut(d$egfr_base, c(-Inf,30,60,Inf), labels=c("lt30","30to60","ge60"))
 grp <- ifelse(d$sev1==0,"blank", ifelse(d$sev1==1,"mild","modsev")); d$grp <- factor(grp, levels=c("blank","mild","modsev"))
@@ -26,7 +26,7 @@ add("Serum phosphate, mg/dL, mean (SD)*", function(x) msd(x$phos_median)); add("
 add("Diabetes, n (%)+", function(x) npc(x$dm[x$yr1==1]==1)); add("Hypertension, n (%)+", function(x) npc(x$htn[x$yr1==1]==1)); add("Coronary artery disease, n (%)+", function(x) npc(x$cad[x$yr1==1]==1))
 add("Echocardiography episodes per patient, median (IQR)", function(x) miqr(x$n_ep,0)); add("Follow-up to last echocardiogram, years, median (IQR)", function(x) miqr(x$t_last_study/365.25))
 add("Died after index, n (%)", function(x) npc(!is.na(x$t_death)))
-res2$table1 <- do.call(rbind, t1); res2$table1_notes <- sprintf("*Among patients with a value: phosphate %d, calcium %d, alkaline phosphatase %d. +Among the %d patients with at least one year of contact with the health system before index. Deaths are all deaths recorded after index (MIMIC-IV records deaths up to one year after the last hospital contact).", sum(!is.na(d$phos_median)), sum(!is.na(d$ca_median)), sum(!is.na(d$alp_median)), sum(d$yr1==1))
+res2$table1 <- do.call(rbind, t1); res2$table1_notes <- sprintf("*Among patients with a value: phosphate %d, calcium %d, alkaline phosphatase %d. +Among the %d patients with at least one year of contact with the health system before index. Deaths are all deaths recorded after index (MIMIC-IV records deaths up to one year after the last hospital discharge). E/e' was recorded in %d, %d and %d patients (%.1f%%, %.1f%% and %.1f%%), left atrial dimension in %d, %d and %d, septal wall thickness in %d, %d and %d, and body mass index in %d, %d and %d.", sum(!is.na(d$phos_median)), sum(!is.na(d$ca_median)), sum(!is.na(d$alp_median)), sum(d$yr1==1), sum(!is.na(d$E_sept[d$sev1==0])), sum(!is.na(d$E_sept[d$sev1==1])), sum(!is.na(d$E_sept[d$sev1>=2])), 100*mean(!is.na(d$E_sept[d$sev1==0])), 100*mean(!is.na(d$E_sept[d$sev1==1])), 100*mean(!is.na(d$E_sept[d$sev1>=2])), sum(!is.na(d$la[d$sev1==0])), sum(!is.na(d$la[d$sev1==1])), sum(!is.na(d$la[d$sev1>=2])), sum(!is.na(d$ivs[d$sev1==0])), sum(!is.na(d$ivs[d$sev1==1])), sum(!is.na(d$ivs[d$sev1>=2])), sum(!is.na(d$bmi[d$sev1==0])), sum(!is.na(d$bmi[d$sev1==1])), sum(!is.na(d$bmi[d$sev1>=2])))
 # ---------- RELIABILITY ----------
 tr <- table(factor(p$sev,levels=0:3), factor(p$nxt,levels=0:3)); res2$transitions <- tr; res2$transitions_pct <- round(100*prop.table(tr,1),1)
 p <- p[order(p$pid,p$rn),]; p$prev <- ave(p$sev, p$pid, FUN=function(v) c(NA, head(v,-1)))

@@ -7,7 +7,7 @@
 # Cohorts as in 05_reliability_intervention.R; only ef_cat / eg / af / esrd / echo covariates come from the imputed data.
 suppressPackageStartupMessages({library(mice); library(survival)}); source("R/00_common.R")
 d <- readRDS("data/frame.rds"); mi <- readRDS("data/mice.rds"); imp <- mi$imp; pid <- mi$pid
-d$t_end_vital <- ifelse(!is.na(d$t_death) & d$t_death <= d$t_last_study + 365, d$t_death, d$t_last_study + 365); d$dead_vital <- as.integer(!is.na(d$t_death) & d$t_death <= d$t_last_study + 365)
+d$t_vs_end <- vital_horizon(d$t_last_disch, d$t_last_study); d$dead_vital <- as.integer(!is.na(d$t_death) & d$t_death <= d$t_vs_end); d$t_end_vital <- ifelse(d$dead_vital==1, d$t_death, d$t_vs_end)
 mk_ef <- function(v) factor(ifelse(v < 40, "lt40", ifelse(v < 50, "40to49", "ge50")), levels=c("ge50","lt40","40to49"))
 mk_eg <- function(v) factor(ifelse(v >= 60, "ge60", ifelse(v >= 30, "30to60", "lt30")), levels=c("ge60","30to60","lt30"))
 MU <- c(E_sept=mean(d$E_sept,na.rm=T), la=mean(d$la,na.rm=T), ivs=mean(d$ivs,na.rm=T), bmi=mean(d$bmi,na.rm=T)); SD <- c(E_sept=sd(d$E_sept,na.rm=T), la=sd(d$la,na.rm=T), ivs=sd(d$ivs,na.rm=T), bmi=sd(d$bmi,na.rm=T))

@@ -1,0 +1,2 @@
+Index episode: 1854 patients (6.0%) had more than one study in the index episode; span median 6 days, 90th percentile 27, maximum 183; the defining study was later than the episode's first study for 234 patients.
+Model-independent check landmarked at the classification echocardiogram: HR 1.86 (1.22–2.84) (n = 1308, events = 93); the earlier construction with the clock at the first read gave 2.61 (1.85–3.70) (n = 1364, events = 149).

@@ -1,0 +1,9 @@
+"setting","stratum","def","n_pt","events"
+"outpatient index","onset","first",11689,604
+"inpatient index","onset","first",9948,435
+"outpatient index","onset","confirmed",11689,153
+"inpatient index","onset","confirmed",9948,97
+"outpatient index","progression","first",3217,817
+"inpatient index","progression","first",3728,789
+"outpatient index","progression","confirmed",3217,318
+"inpatient index","progression","confirmed",3728,210

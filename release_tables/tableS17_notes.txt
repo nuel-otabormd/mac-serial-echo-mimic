@@ -1,0 +1,2 @@
+Fully adjusted main models (D3) refitted after repeating the multiple imputation with a different random seed (20260817 instead of 20260816; m = 20, maxit = 5, same imputation model).
+Largest absolute difference in hazard ratio: 0.586 overall (0.139 excluding the sparse severe aortic calcification category); confidence-interval status (excluding 1 or not) changed for 2 of 60 estimates; no estimate changed direction (0).

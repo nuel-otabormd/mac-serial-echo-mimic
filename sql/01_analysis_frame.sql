@@ -52,12 +52,13 @@ CREATE TEMP TABLE counts AS SELECT
   (SELECT COUNT(*) FROM adult WHERE subject_id IN (SELECT subject_id FROM pros)) n_pros,
   (SELECT COUNT(*) FROM adult a JOIN rheum_any r USING(subject_id) WHERE a.subject_id NOT IN (SELECT subject_id FROM pros) AND r.first_rheum<=a.d1_end) n_rheum,
   (SELECT COUNT(*) FROM coh WHERE rheum_post=1) n_rheum_post;
-WITH later AS (SELECT c.subject_id, s.dt, s.dt_last, s.sev, s.nxt, s.nxt_dt, s.rn FROM coh c JOIN seq s USING(subject_id) WHERE s.rn>1),
+WITH later AS (SELECT c.subject_id, s.dt, s.dt_first, s.dt_last, s.sev, s.nxt, s.nxt_dt, s.rn FROM coh c JOIN seq s USING(subject_id) WHERE s.rn>1),
 ev AS (SELECT subject_id, MIN(IF(sev>=2,dt,NULL)) t_first, MIN(IF(sev>=2 AND nxt>=2,dt,NULL)) t_conf, MAX(dt) t_last, MAX(dt_last) t_last_study,
        ARRAY_AGG(IF(sev>=2, IF(nxt IS NULL, "unconfirmable", IF(nxt>=2,"confirmed","refuted")), NULL) IGNORE NULLS ORDER BY dt, rn LIMIT 1)[SAFE_OFFSET(0)] first_status,
        ARRAY_AGG(IF(sev>=2, nxt_dt, NULL) IGNORE NULLS ORDER BY dt, rn LIMIT 1)[SAFE_OFFSET(0)] t_first_next,      -- date of the episode after the first moderate or severe episode (classification echo)
        ARRAY_AGG(IF(sev>=2 AND nxt>=2, nxt_dt, NULL) IGNORE NULLS ORDER BY dt, rn LIMIT 1)[SAFE_OFFSET(0)] t_conf_next,   -- the echo that confirms the first confirmed pair (differs from t_first_next when a first read is refuted and a later pair confirms)
        ARRAY_AGG(IF(sev>=2, dt_last, NULL) IGNORE NULLS ORDER BY dt, rn LIMIT 1)[SAFE_OFFSET(0)] t_first_end,     -- last study of the first moderate or severe episode
+       ARRAY_AGG(IF(sev>=2, dt_first, NULL) IGNORE NULLS ORDER BY dt, rn LIMIT 1)[SAFE_OFFSET(0)] t_first_start,   -- first study of the first moderate or severe episode
        MIN(IF(sev>=1,dt,NULL)) t_first_mild_or_worse FROM later GROUP BY 1),
 -- index-echo measured exposures
 echo AS (SELECT s.measurement_id,
@@ -74,6 +75,13 @@ echo AS (SELECT s.measurement_id,
    MAX(IF((s.measurement="mitral_stenosis" AND REGEXP_CONTAINS(LOWER(s.result),r"^mod|sever")) OR (s.measurement="mv_mean_grad" AND SAFE_CAST(s.result AS FLOAT64)>=5),1,0)) ms0,
    MAX(IF(s.measurement="mv_mean_grad", SAFE_CAST(s.result AS FLOAT64), NULL)) grad0
    FROM `physionet-data.mimiciv_echo.structured_measurement` s JOIN coh c ON c.mid=s.measurement_id GROUP BY 1),
+-- baseline valve status for the stenosis and regurgitation outcomes is judged on EVERY study of the index episode (not only the defining study)
+idxvalve AS (SELECT c.subject_id,
+   MAX(IF(s.measurement="mitral_regurg" AND REGEXP_CONTAINS(LOWER(s.result),r"^mod|sever"),1,0)) mr0,
+   MAX(IF((s.measurement="mitral_stenosis" AND REGEXP_CONTAINS(LOWER(s.result),r"^mod|sever")) OR (s.measurement="mv_mean_grad" AND SAFE_CAST(s.result AS FLOAT64)>=5),1,0)) ms0
+   FROM `physionet-data.mimiciv_echo.structured_measurement` s JOIN coh c ON s.subject_id=c.subject_id AND s.measurement_datetime BETWEEN c.d1_first AND c.d1_end WHERE LOWER(s.test_type)="tte" GROUP BY 1),
+-- last hospital discharge: MIMIC-IV records deaths (hospital and state records) up to one year after the last hospital discharge, so vital status is ascertained to that date (or to the last echocardiogram if later)
+lastadm AS (SELECT c.subject_id, MAX(a.dischtime) last_disch FROM coh c JOIN `physionet-data.mimiciv_3_1_hosp.admissions` a USING(subject_id) GROUP BY 1),
 -- study-level mitral function after index (secondary outcomes)
 stud AS (SELECT s.subject_id, s.measurement_id, s.measurement_datetime sdt,
    MAX(IF(s.measurement="mitral_regurg" AND REGEXP_CONTAINS(LOWER(s.result),r"^mod|sever"),1,0)) mr,
@@ -139,14 +147,15 @@ mv AS (SELECT subject_id, hadm_id, MIN(chartdate) mvdate,
 conc AS (SELECT m.subject_id, m.hadm_id, MAX(IF((p.icd_version=10 AND REGEXP_CONTAINS(p.icd_code,r"^021[0-3]")) OR (p.icd_version=9 AND p.icd_code LIKE "361%"),1,0)) cabg,
    MAX(IF((p.icd_version=10 AND REGEXP_CONTAINS(p.icd_code,r"^02[QRU]F")) OR (p.icd_version=9 AND p.icd_code IN ("3511","3521","3522","3505","3506")),1,0)) avs FROM mv m JOIN prc p USING(subject_id, hadm_id) GROUP BY 1,2),
 firstmv AS (SELECT m.subject_id, MIN(m.mvdate) mvdate, ARRAY_AGG(m.modality ORDER BY m.mvdate, m.hadm_id LIMIT 1)[OFFSET(0)] modality, ARRAY_AGG(IF(c.cabg=1 OR c.avs=1,0,1) ORDER BY m.mvdate, m.hadm_id LIMIT 1)[OFFSET(0)] isolated FROM mv m JOIN conc c USING(subject_id, hadm_id) GROUP BY 1),
--- moderate or greater mitral dysfunction: first study at or after the first moderate or severe MAC read with moderate or greater MR or MS, or mean gradient >= 5 mmHg
-modany AS (SELECT c.subject_id, IF(c.sev1>=2, c.d1, e.t_first) t_mod, IF(c.sev1>=2, c.d1_end, e.t_first_end) t_mod_end,
+-- moderate or greater mitral dysfunction: first study, from the first study of the qualifying (first moderate or severe) episode onward, with moderate or greater MR or MS, or mean gradient >= 5 mmHg;
+-- dysfunction on any study of that episode counts as already present at the qualifying episode
+modany AS (SELECT c.subject_id, IF(c.sev1>=2, c.d1, e.t_first) t_mod, IF(c.sev1>=2, c.d1_end, e.t_first_end) t_mod_end, IF(c.sev1>=2, c.d1_first, e.t_first_start) t_mod_start,
                   IF(c.sev1>=2, c.d1, IF(e.t_conf IS NOT NULL, e.t_conf_next, NULL)) t_conf_start   -- confirmed definition: index for moderate or severe at index, otherwise the echo that confirms the pair
            FROM coh c LEFT JOIN ev e USING(subject_id)),
 stud2 AS (SELECT s.subject_id, s.measurement_datetime sdt,
    MAX(IF(s.measurement="mitral_regurg" AND REGEXP_CONTAINS(LOWER(s.result),r"^mod|sever"),1,0)) mr,
    MAX(IF((s.measurement="mitral_stenosis" AND REGEXP_CONTAINS(LOWER(s.result),r"^mod|sever")) OR (s.measurement="mv_mean_grad" AND SAFE_CAST(s.result AS FLOAT64)>=5),1,0)) ms
-   FROM `physionet-data.mimiciv_echo.structured_measurement` s JOIN modany m USING(subject_id) WHERE LOWER(s.test_type)="tte" AND m.t_mod IS NOT NULL AND s.measurement_datetime>=m.t_mod GROUP BY 1,2),
+   FROM `physionet-data.mimiciv_echo.structured_measurement` s JOIN modany m USING(subject_id) WHERE LOWER(s.test_type)="tte" AND m.t_mod IS NOT NULL AND s.measurement_datetime>=m.t_mod_start GROUP BY 1,2),   -- from the first study of the qualifying episode
 pheno AS (SELECT s.subject_id, MIN(IF(s.mr=1 OR s.ms=1, s.sdt, NULL)) t_pheno, ARRAY_AGG(IF(s.mr=1 OR s.ms=1, IF(s.ms=1,"sten","mr"), NULL) IGNORE NULLS ORDER BY s.sdt, s.ms DESC LIMIT 1)[SAFE_OFFSET(0)] pheno_type,
           MAX(IF((s.mr=1 OR s.ms=1) AND s.sdt<=m.t_mod_end,1,0)) pheno_same_episode,   -- dysfunction already documented within the qualifying episode
           MIN(IF((s.mr=1 OR s.ms=1) AND s.sdt>m.t_mod_end, s.sdt, NULL)) t_pheno_after,   -- first dysfunction on a study after that episode
@@ -160,7 +169,7 @@ SELECT TO_HEX(MD5(CAST(c.subject_id AS STRING))) pid, c.sev1, c.n_ep, c.age0, c.
   DATE_DIFF(DATE(e.t_first_mild_or_worse),DATE(c.d1_end),DAY) t_first_mild,
   IF(c.dod IS NOT NULL, DATE_DIFF(DATE(c.dod),DATE(c.d1_end),DAY), NULL) t_death,
   IF(DATE_DIFF(DATE(c.d1_end),DATE(p.fa),DAY)>=365,1,0) yr1, st.st setting, IF(ia.idx_hadm IS NULL,0,1) idx_inpt,
-  ec.av, ec.lvef, SAFE_DIVIDE(ec.E, ec.sept_ep) E_sept, SAFE_DIVIDE(ec.E, ec.lat_ep) E_lat, ec.la, ec.ivs, ec.ht, ec.wt, ec.mr0, ec.ms0, ec.grad0,
+  ec.av, ec.lvef, SAFE_DIVIDE(ec.E, ec.sept_ep) E_sept, SAFE_DIVIDE(ec.E, ec.lat_ep) E_lat, ec.la, ec.ivs, ec.ht, ec.wt, IFNULL(ivx.mr0, ec.mr0) mr0, IFNULL(ivx.ms0, ec.ms0) ms0, ec.grad0, DATE_DIFF(DATE(la.last_disch), DATE(c.d1_end), DAY) t_last_disch,
   DATE_DIFF(DATE(dy.t_ms),DATE(c.d1_end),DAY) t_ms, DATE_DIFF(DATE(dy.t_mr),DATE(c.d1_end),DAY) t_mr,
   l.n_cr, l.cr_min, l.cr_median, l.cr_last, l.n_phos, l.phos_median, l.phos_last, l.phos_preidx_last, l.ca_median, l.ca_last, l.alp_median, l.alp_last,
   IF(cm.esrd_dx=1 OR c.subject_id IN (SELECT subject_id FROM ihd),1,0) esrd,
@@ -171,5 +180,5 @@ SELECT TO_HEX(MD5(CAST(c.subject_id AS STRING))) pid, c.sev1, c.n_ep, c.age0, c.
   GREATEST(DATE_DIFF(DATE(ma.t_mod),DATE(c.d1_end),DAY),0) t_modany, GREATEST(DATE_DIFF(DATE(ph.t_pheno),DATE(c.d1_end),DAY),0) t_pheno, ph.pheno_type, ph.pheno_same_episode, DATE_DIFF(DATE(ph.t_pheno_after),DATE(c.d1_end),DAY) t_pheno_after, GREATEST(DATE_DIFF(DATE(ph.t_pheno_conf),DATE(c.d1_end),DAY),0) t_pheno_conf, ph.pheno_type_conf, GREATEST(DATE_DIFF(DATE(ma.t_conf_start),DATE(c.d1_end),DAY),0) t_conf_start,
   DATE_DIFF(fm.mvdate,DATE(c.d1_end),DAY) t_interv, fm.modality interv_modality, fm.isolated interv_isolated,
   k.n_any, k.n_adult_any, k.n_single_episode, k.n_s0, k.n_adult, k.n_pros, k.n_rheum, k.n_rheum_post
-FROM coh c CROSS JOIN counts k LEFT JOIN ev e USING(subject_id) LEFT JOIN echo ec ON ec.measurement_id=c.mid LEFT JOIN dys dy USING(subject_id) LEFT JOIN lab l USING(subject_id) LEFT JOIN cm USING(subject_id) LEFT JOIN cmp USING(subject_id)
+FROM coh c CROSS JOIN counts k LEFT JOIN ev e USING(subject_id) LEFT JOIN echo ec ON ec.measurement_id=c.mid LEFT JOIN dys dy USING(subject_id) LEFT JOIN lab l USING(subject_id) LEFT JOIN cm USING(subject_id) LEFT JOIN cmp USING(subject_id) LEFT JOIN idxvalve ivx USING(subject_id) LEFT JOIN lastadm la USING(subject_id)
  LEFT JOIN ecgaf ea USING(subject_id) LEFT JOIN prior p USING(subject_id) LEFT JOIN setting st USING(subject_id) LEFT JOIN idxadm ia USING(subject_id) LEFT JOIN modany ma USING(subject_id) LEFT JOIN pheno ph USING(subject_id) LEFT JOIN firstmv fm USING(subject_id)

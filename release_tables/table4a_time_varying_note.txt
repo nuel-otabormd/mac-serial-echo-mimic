@@ -1,0 +1,2 @@
+Reaching moderate or severe MAC during follow-up (time-varying exposure, patients with no or mild MAC at index): HR 5.21 (4.19–6.48); n = 28477, events = 649, multiply imputed covariates.
+Follow-up ends at the last echocardiogram; death within 30 days after it is a competing event and later death is censoring at the last echocardiogram (Supplementary Table S14 varies the window).

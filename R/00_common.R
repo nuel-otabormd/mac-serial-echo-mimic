@@ -4,7 +4,7 @@ if (!grepl("UTF-8", Sys.getlocale("LC_CTYPE"), ignore.case=TRUE)) for (loc in c(
 # Observation of the annulus ends at the last echocardiogram. In the time-to-event constructions that need a death time
 # (Cox companion, Fine and Gray, cumulative incidence, time-varying-exposure models) death is a competing event when it
 # occurs within GRACE_DAYS after the last study; a later death is treated as censoring at the last study, because MIMIC-IV
-# records deaths only up to one year after the last hospital contact. Sensitivity analyses vary the window (0, 90, 365 days).
+# records deaths only up to one year after the last hospital discharge. Sensitivity analyses vary the window (0, 90, 365 days).
 GRACE_DAYS <- 30
 mk <- function(tp, td, tl, grace=GRACE_DAYS){
   ev <- ifelse(!is.na(tp), 1L, ifelse(!is.na(td) & (is.na(tl) | td <= tl + grace), 2L, 0L))
@@ -23,3 +23,9 @@ split_intervals <- function(iv){
     if (any(hit)) { left <- iv[hit,]; left$b <- cp; left$ev <- 0L; iv$a[hit] <- cp; iv <- rbind(iv, left) } }
   iv$dt <- iv$b - iv$a; iv$band <- band_of(iv$a); iv$t_prev <- iv$a*365.25; iv$t <- iv$b*365.25
   iv[order(iv$pid, iv$a), setdiff(names(iv), c("a","b"))] }
+
+# Vital-status horizon: MIMIC-IV records deaths (hospital and state records) up to one year after the last hospital discharge,
+# so a survivor's status is known to that date, or to the last echocardiogram if that is later (alive at that study); patients
+# never admitted are known alive only to their last echocardiogram. Used for the descriptive survival summaries.
+vital_horizon <- function(t_last_disch, t_last_study) pmax(ifelse(is.na(t_last_disch), -Inf, t_last_disch + 365), t_last_study)
+

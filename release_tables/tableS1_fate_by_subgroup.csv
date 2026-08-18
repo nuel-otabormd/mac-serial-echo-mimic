@@ -1,0 +1,23 @@
+"baseline_group","subgroup","level","reads","confirmed_pct","refuted_pct","never_reexamined_pct"
+"No reported calcification","Age at the qualifying echocardiogram, years","<65",232,25,42,32
+"No reported calcification","Age at the qualifying echocardiogram, years","65-74",246,17,39,43
+"No reported calcification","Age at the qualifying echocardiogram, years","75-84",336,21,32,48
+"No reported calcification","Age at the qualifying echocardiogram, years","85+",225,19,23,58
+"No reported calcification","LVEF","<40%",86,12,47,42
+"No reported calcification","LVEF","40–49%",61,18,41,41
+"No reported calcification","LVEF","≥50%",822,23,33,45
+"No reported calcification","Dialysis","No",982,20,35,46
+"No reported calcification","Dialysis","Yes",57,37,23,40
+"No reported calcification","Sex","Women",542,22,31,46
+"No reported calcification","Sex","Men",497,19,37,44
+"Mild","Age at the qualifying echocardiogram, years","<65",194,35,32,33
+"Mild","Age at the qualifying echocardiogram, years","65-74",371,27,34,39
+"Mild","Age at the qualifying echocardiogram, years","75-84",549,30,28,42
+"Mild","Age at the qualifying echocardiogram, years","85+",492,26,22,52
+"Mild","LVEF","<40%",122,18,42,40
+"Mild","LVEF","40–49%",123,22,33,46
+"Mild","LVEF","≥50%",1231,32,26,42
+"Mild","Dialysis","No",1531,29,28,43
+"Mild","Dialysis","Yes",75,28,25,47
+"Mild","Sex","Women",880,31,24,44
+"Mild","Sex","Men",726,26,32,42

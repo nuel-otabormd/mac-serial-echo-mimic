@@ -32,12 +32,13 @@ covs_m <- function(m){ x <- complete(imp, m); x$pid <- dA$pid; x$sev1n <- dA$sev
   x[, c(FIXED,"age10","male","era_n","setting","sev1n","av_cat","av_lin","ef_cat","eg","esrd","zE","zla","zivs","zbmi","af","zphos","zca","zalp","dm","htn","cad")] }
 covs <- lapply(seq_len(M_USE), covs_m); covsX <- lapply(covs, function(x) x[x$rheum_post==0,])   # covs = primary cohort; covsX excludes the patients whose only rheumatic report came after index
 # ---------- person-interval builder (intervals between consecutive episodes, split at the band cut points) ----------
-build_iv <- function(cov, stratum, def, from_rn=1, t_event_override=NULL){
+build_iv <- function(cov, stratum, def, from_rn=1, t_event_override=NULL, t_stop_override=NULL){   # t_stop_override: end follow-up at this day (per patient), e.g. at the first moderate or severe report
   ids <- cov$pid[cov$sev1n==stratum]; pp <- p[p$pid %in% ids & p$rn>from_rn, c("pid","rn","t","t_prev","sev_prev","inpt_prev")]
   if (from_rn>1) { t0 <- p$t[p$rn==from_rn]; names(t0) <- p$pid[p$rn==from_rn]; pp$t_prev <- pmax(pp$t_prev, t0[pp$pid]) }
   te <- if (!is.null(t_event_override)) t_event_override else if (def=="first") cov$t_first else cov$t_conf; names(te) <- cov$pid
   pp$te <- te[pp$pid]; pp$ev <- as.integer(!is.na(pp$te) & pp$t==pp$te)
   pp$after <- ave(pp$ev, pp$pid, FUN=function(v) c(0, head(cumsum(v),-1))); pp <- pp[pp$after==0,]   # drop intervals after the event
+  if (!is.null(t_stop_override)) { ts <- t_stop_override; names(ts) <- cov$pid; pp <- pp[is.na(ts[pp$pid]) | pp$t <= ts[pp$pid],] }   # optional administrative stop
   if (from_rn>1) { pp <- pp[pp$t > pp$t_prev,]; pp <- pp[is.na(pp$te) | pp$te > (t0[pp$pid]),] }      # landmark: follow-up starts at the landmark episode; events at or before it excluded (they define it)
   pp <- split_intervals(pp[,c("pid","t_prev","t","ev","sev_prev","inpt_prev")])
   merge(pp, cov, by="pid") }
@@ -133,6 +134,13 @@ for (s in 0:1) { fits <- lapply(covs, function(cv) fit_glm(build_iv(cv, s, "conf
   out <- pool_hr(fits, KEY); out$stratum <- lab_st(s); out$def <- "confirmed, dated at the confirming echocardiogram"; out$n_pt <- fits[[1]]$n_pt; out$events <- fits[[1]]$events; ct[[length(ct)+1]] <- out
   msg("CONFIRMED TIMING (event at confirming echo) %s: patients %d events %d", lab_st(s), out$n_pt[1], out$events[1]) }
 res$confirmed_timing <- do.call(rbind, ct)
+# ---------- 4e2. SENSITIVITY: confirmed event restricted to the FIRST moderate or severe report being reproduced on the next episode
+# (a later reproduced pair after a first report that was followed by a lower grade does not count); follow-up ends at the first report ----------
+cf <- list()
+for (s in 0:1) { fits <- lapply(covs, function(cv) { te <- ifelse(!is.na(cv$first_status) & cv$first_status=="confirmed", cv$t_first, NA); fit_glm(build_iv(cv, s, "confirmed", t_event_override=te, t_stop_override=cv$t_first), D3) })
+  out <- pool_hr(fits, KEY); out$stratum <- lab_st(s); out$def <- "confirmed, first report only"; out$n_pt <- fits[[1]]$n_pt; out$events <- fits[[1]]$events; cf[[length(cf)+1]] <- out
+  msg("CONFIRMED FIRST-REPORT-ONLY %s: patients %d events %d", lab_st(s), out$n_pt[1], out$events[1]) }
+res$confirmed_firstonly <- do.call(rbind, cf)
 # ---------- 4f. SENSITIVITY: diagnosis codes only from admissions COMPLETED by time zero (MIMIC-IV codes are assigned per admission at
 # discharge and carry no date within the stay, so the main definition, admissions begun by time zero, can include conditions documented
 # later in an index admission). D3 with prior-only atrial fibrillation and dialysis dependence; D5 with prior-only coded diagnoses. ----------

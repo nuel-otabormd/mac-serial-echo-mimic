@@ -1,0 +1,2 @@
+Cause-specific hazard ratios for receipt of mitral intervention from the echocardiogram documenting dysfunction (death a competing event, treated as censoring for the cause-specific hazard). Multiply imputed: n = 2117, interventions = 133; complete case: n = 1485, interventions = 86.
+Survival after the echocardiogram showing dysfunction, intervention as a time-varying exposure (MI-pooled): HR 1.15 (0.89–1.49); confounded by indication and treatment selection.

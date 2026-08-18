@@ -100,10 +100,18 @@ sql/        BigQuery extraction (two queries and the wrapper script)
 R/          shared conventions (00_common.R) and analysis scripts 01–10, run in order by run_all.sh
 protocol/   the analysis plan as archived (v2.4) and DEVIATIONS.md, the dated note on how the final analysis differs from it
 expected/   snapshot of the reported results used by the regression check in step 9
+release_tables/  aggregate result tables (CSV and notes) from the archived run: every main and supplementary table in full,
+            including the complete versions of tables the supplement shows only for the principal correlates (no patient-level data)
 renv.lock   package versions used for the reported results
 data/       created by step 1–3 (ignored by git)
 outputs/    results, figures, tables and logs (ignored by git)
 ```
+
+## Aggregate result tables
+
+`release_tables/` holds a copy of `outputs/tables/` from the archived run (aggregate hazard ratios, counts and notes only,
+no patient-level data). The supplement shows the principal correlates; the complete tables, including the full stage-wise
+models (S6a to S6d) and the full companion tables behind Supplementary Table S11, are here as machine-readable files.
 
 ## Sharing the code
 

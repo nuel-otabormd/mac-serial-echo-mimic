@@ -7,6 +7,9 @@ outputs
 *.RData
 *.csv
 !expected/expected_results.csv
+!release_tables/*.csv
+!release_tables/*.txt
 .DS_Store
 .Rhistory
 Rplots.pdf
+*.zip

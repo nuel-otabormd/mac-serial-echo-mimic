@@ -1,0 +1,8 @@
+Fitted to 30906 patients and 118829 observations; -2 log-likelihood 225340.4; best of 5 starting-value sets (Supplementary Table S15).
+P_true_mild_given_blank.State 2 = 0.1072
+P_true_modsev_given_blank.State 3 = 0.0077
+P_true_free_given_mild.State 1 = 0.3036
+P_true_modsev_given_mild.State 3 = 0.0947
+PPV_modplus_read.State 3 = 0.8300
+sens_modplus_true_mod = 0.6566
+sens_modplus_true_sev = 0.9243

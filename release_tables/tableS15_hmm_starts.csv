@@ -1,0 +1,6 @@
+"start","fitted","converged","hessian_pd","minus2LL","minutes","note","best"
+"protocol values",TRUE,TRUE,TRUE,225340.6,134.8,"",FALSE
+"faster progression",TRUE,TRUE,TRUE,225340.6,139.9,"",FALSE
+"slower progression",TRUE,TRUE,TRUE,225340.5,140.1,"",FALSE
+"little misclassification",TRUE,TRUE,TRUE,225340.4,157.7,"",TRUE
+"more calcification at index",TRUE,TRUE,TRUE,225340.7,140,"",FALSE
