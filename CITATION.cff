@@ -6,7 +6,7 @@ authors:
   - family-names: Otabor
     given-names: Emmanuel
     orcid: "https://orcid.org/0009-0006-7902-6909"
-version: 1.1.0
+version: 1.1.1
 date-released: 2026-08-17
 license: MIT
 repository-code: "https://github.com/nuel-otabormd/mac-serial-echo-mimic"
@@ -17,10 +17,10 @@ identifiers:
     description: "Concept DOI, resolves to the latest archived version"
   - type: doi
     value: 10.5281/zenodo.21987596
-    description: "Version 1.1.0, the manuscript submission version (reanalysis after independent methodological review)"
+    description: "Version 1.1.0 (reanalysis after independent methodological review)"
   - type: doi
     value: 10.5281/zenodo.21984213
-    description: "Version 1.0.1, first archived implementation (superseded)"
+    description: "Version 1.0.1 (first archived implementation, superseded)"
   - type: doi
     value: 10.5281/zenodo.21983973
     description: "Version 1.0.0"

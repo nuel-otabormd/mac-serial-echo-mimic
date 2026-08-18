@@ -2,7 +2,7 @@
 
 `MAC_Study_Protocol_v2.4.md` is reproduced as written on 16 August 2026 and has not been edited. It was developed
 iteratively against the data between 12 and 16 August 2026, and that specification work produced preliminary hazard ratios
-under superseded specifications, as the protocol itself discloses. The analysis in this repository (version 1.1.0, 17 August
+under superseded specifications, as the protocol itself discloses. The analysis in this repository (versions 1.1.0 and 1.1.1, 17 August
 2026) differs from the plan, and from the first archived implementation (version 1.0.x, same day), in the respects below.
 Items 1 to 6 are clarifications; items 7 to 17 are changes made after an independent methodological review of the first
 implementation, before submission. None changes an outcome definition, an exposure or a reporting rule; several change the
@@ -73,6 +73,7 @@ timing conventions and the estimator's implementation, and every reported number
     mortality after dysfunction is reported at fixed horizons.
 16. **Additional sensitivity analyses added:** landmark at the second episode for both cohorts (Supplementary Table S13a);
     complete-case main models (Supplementary Table S12); hidden Markov model refitted from five dispersed starting sets with
-    the table of starts and observed-versus-expected prevalences (Supplementary Table S15).
+    the table of starts and observed-versus-expected prevalences (Supplementary Table S15); the imputation repeated with a
+    second random seed to show the simulation error of the pooled estimates (Supplementary Table S17; version 1.1.1).
 17. **Source population.** The cohort flow now begins with all adults who had a qualifying study, showing those with a
     single episode; the estimand is stated as conditional on serial echocardiography.

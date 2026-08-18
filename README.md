@@ -44,7 +44,7 @@ export BQ_BILLING_PROJECT=<your-gcp-project-id>
 bash run_all.sh
 ```
 
-`run_all.sh` runs the nine steps below in order and stops at the first error. Total wall time on a laptop is about
+`run_all.sh` runs the ten steps below in order and stops at the first error. Total wall time on a laptop is about
 two and a half hours, most of it in steps 4 (about 55 minutes) and 5 (about 70 minutes on five cores).
 
 | Step | Script | Produces |
@@ -58,10 +58,11 @@ two and a half hours, most of it in steps 4 (about 55 minutes) and 5 (about 70 m
 | 7 | `R/06_secondary_mi.R` | `outputs/results/secondary_mi.rds` (stenosis time-varying-exposure model with the death-window sensitivity, cause-specific intervention model and survival model, all with multiply imputed covariates) |
 | 8 | `R/07_figures.R`, `R/08_tables.R` | `outputs/figures/` (Figures 1–4 as PNG, TIFF and PDF at 600 dpi), `outputs/tables/` (Tables 1–4 and Supplementary Tables S1–S16 as CSV, with notes) |
 | 9 | `R/09_verify.R` | regression check of this run against `expected/expected_results.csv`, a snapshot of the values reported in the manuscript taken from the archived run; exit status 1 if any check fails. It confirms that the code reproduces the reported numbers; it is not evidence that the numbers are right |
+| 10 | `R/10_mi_stability.R` | `outputs/results/mi_stability.rds`, `outputs/tables/tableS17_imputation_stability.csv` (the imputation repeated with a second seed and the fully adjusted main models refitted, after checking that the archived imputations reproduce `results_part1.rds` exactly; about 15 minutes) |
 
 `R/00_common.R` holds the shared conventions (death window, time bands, interval splitter) and is sourced by the scripts.
 
-Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can run in parallel with them.
+Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can run in parallel with them; step 10 needs steps 2, 3 and 4.
 
 ## Where each manuscript element comes from
 
@@ -74,7 +75,7 @@ Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can 
 | Table 3, Figure 3 | `tables/table3_main_models.csv`, `figures/Figure3_forest.*` |
 | Figure 4, Table 4A | `figures/Figure4_calcific_stenosis_CIF.*`, `tables/table4a_stenosis_incidence.csv` and note |
 | Table 4B, 4C | `tables/table4b_cascade.csv` and notes, `tables/table4c_intervention_or.csv` and notes |
-| Supplementary Tables S1–S16 | `tables/tableS1_*` to `tables/tableS16*` (S7c weight diagnostics, S11 complementary log-log, S12 complete case, S13 landmark and rheumatic sensitivities, S14 death window, S15 hidden Markov starts, S16 fixed-horizon intervention and mortality) |
+| Supplementary Tables S1–S17 | `tables/tableS1_*` to `tables/tableS17*` (S7c weight diagnostics, S11 complementary log-log, S12 complete case, S13 landmark and rheumatic sensitivities, S14 death window, S15 hidden Markov starts, S16 fixed-horizon intervention and mortality, S17 imputation stability) |
 
 ## Reproducibility notes
 
@@ -96,7 +97,7 @@ Steps 3–7 depend only on `data/`; step 5 is independent of steps 3, 4 and can 
 
 ```
 sql/        BigQuery extraction (two queries and the wrapper script)
-R/          shared conventions (00_common.R) and analysis scripts 01–09, run in order by run_all.sh
+R/          shared conventions (00_common.R) and analysis scripts 01–10, run in order by run_all.sh
 protocol/   the analysis plan as archived (v2.4) and DEVIATIONS.md, the dated note on how the final analysis differs from it
 expected/   snapshot of the reported results used by the regression check in step 9
 renv.lock   package versions used for the reported results
@@ -122,7 +123,8 @@ repository; the scripts only use the relative paths and `.gitignore` covers both
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21983972.svg)](https://doi.org/10.5281/zenodo.21983972)
 
 Code is released under the MIT licence (`LICENSE`). The repository lives at
-https://github.com/nuel-otabormd/mac-serial-echo-mimic; release v1.1.0 (the manuscript submission version) is archived on
-Zenodo, doi:10.5281/zenodo.21987596 (concept DOI for all versions: 10.5281/zenodo.21983972; v1.0.1, the first
-archived implementation, is 10.5281/zenodo.21984213). Please cite the accompanying
-article and, for the code, the Zenodo record; `CITATION.cff` carries the metadata.
+https://github.com/nuel-otabormd/mac-serial-echo-mimic and every tagged release is archived on Zenodo. The concept DOI
+10.5281/zenodo.21983972 resolves to the latest archived version; each release has its own version DOI, minted by Zenodo
+when the release is published and shown on the Zenodo record and in the release notes on GitHub. The manuscript cites the
+version DOI of the release it reports. Please cite the accompanying article and, for the code, the Zenodo record;
+`CITATION.cff` carries the metadata.
